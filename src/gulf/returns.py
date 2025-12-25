@@ -14,9 +14,13 @@ from ..core import emit_receipt, TENANT_ID
 from ..constants import GULF_FEES_COLLECTED
 
 
-def compute_returns(investment_id: str, period: str,
-                    initial_value: float = 0, current_value: float = 0,
-                    distributions: float = 0) -> dict:
+def compute_returns(
+    investment_id: str,
+    period: str,
+    initial_value: float = 0,
+    current_value: float = 0,
+    distributions: float = 0,
+) -> dict:
     """Compute investment returns. Emit returns_receipt.
 
     Args:
@@ -38,22 +42,26 @@ def compute_returns(investment_id: str, period: str,
         total_return = 0
         return_percentage = 0
 
-    return emit_receipt("investment_returns", {
-        "tenant_id": TENANT_ID,
-        "investment_id": investment_id,
-        "period": period,
-        "initial_value": initial_value,
-        "current_value": current_value,
-        "distributions": distributions,
-        "total_value": total_value,
-        "total_return": total_return,
-        "return_percentage": return_percentage,
-        "is_zero_return": return_percentage == 0 and initial_value > 0,
-    })
+    return emit_receipt(
+        "investment_returns",
+        {
+            "tenant_id": TENANT_ID,
+            "investment_id": investment_id,
+            "period": period,
+            "initial_value": initial_value,
+            "current_value": current_value,
+            "distributions": distributions,
+            "total_value": total_value,
+            "total_return": total_return,
+            "return_percentage": return_percentage,
+            "is_zero_return": return_percentage == 0 and initial_value > 0,
+        },
+    )
 
 
-def compare_to_benchmark(returns: dict, benchmark: str,
-                         benchmark_return: float = 0) -> dict:
+def compare_to_benchmark(
+    returns: dict, benchmark: str, benchmark_return: float = 0
+) -> dict:
     """Compare to market benchmark. Emit benchmark_receipt.
 
     Args:
@@ -70,16 +78,19 @@ def compare_to_benchmark(returns: dict, benchmark: str,
     underperformance = alpha < 0
     significant_underperformance = alpha < -10  # 10+ percentage points below benchmark
 
-    return emit_receipt("benchmark_comparison", {
-        "tenant_id": TENANT_ID,
-        "investment_id": returns.get("investment_id", "unknown"),
-        "fund_return_percentage": fund_return,
-        "benchmark": benchmark,
-        "benchmark_return_percentage": benchmark_return,
-        "alpha": alpha,
-        "underperformance": underperformance,
-        "significant_underperformance": significant_underperformance,
-    })
+    return emit_receipt(
+        "benchmark_comparison",
+        {
+            "tenant_id": TENANT_ID,
+            "investment_id": returns.get("investment_id", "unknown"),
+            "fund_return_percentage": fund_return,
+            "benchmark": benchmark,
+            "benchmark_return_percentage": benchmark_return,
+            "alpha": alpha,
+            "underperformance": underperformance,
+            "significant_underperformance": significant_underperformance,
+        },
+    )
 
 
 def verify_reported_vs_actual(reported: dict, actual: dict) -> dict:
@@ -105,18 +116,22 @@ def verify_reported_vs_actual(reported: dict, actual: dict) -> dict:
                     "difference": reported_val - actual_val,
                     "percentage_difference": (
                         (reported_val - actual_val) / actual_val * 100
-                        if actual_val != 0 else float('inf')
+                        if actual_val != 0
+                        else float("inf")
                     ),
                 }
 
     match = len(discrepancies) == 0
 
-    return emit_receipt("returns_verification", {
-        "tenant_id": TENANT_ID,
-        "reported": reported,
-        "actual": actual,
-        "discrepancies": discrepancies,
-        "match": match,
-        "discrepancy_count": len(discrepancies),
-        "fees_collected_baseline": GULF_FEES_COLLECTED,
-    })
+    return emit_receipt(
+        "returns_verification",
+        {
+            "tenant_id": TENANT_ID,
+            "reported": reported,
+            "actual": actual,
+            "discrepancies": discrepancies,
+            "match": match,
+            "discrepancy_count": len(discrepancies),
+            "fees_collected_baseline": GULF_FEES_COLLECTED,
+        },
+    )

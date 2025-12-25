@@ -13,9 +13,10 @@ echo "=== TrumpProof T+24h Gate: MVP ==="
 python3 -m pytest tests/ -q || { echo "FAIL: tests failed"; exit 1; }
 echo "✓ pytest tests pass"
 
-# 3. Verify emit_receipt in all src files
+# 3. Verify emit_receipt in all src files (excluding constants and __init__)
 for f in src/*.py src/*/*.py; do
-    if [ -f "$f" ] && [ "$(basename $f)" != "__init__.py" ]; then
+    basename_f="$(basename $f)"
+    if [ -f "$f" ] && [ "$basename_f" != "__init__.py" ] && [ "$basename_f" != "constants.py" ]; then
         grep -q "emit_receipt\|from.*core import" "$f" || { echo "FAIL: $f missing emit_receipt"; exit 1; }
     fi
 done

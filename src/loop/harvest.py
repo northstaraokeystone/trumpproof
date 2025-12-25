@@ -45,14 +45,17 @@ def harvest_violations(receipts: list, period: str = None) -> dict:
             by_module[module] = []
         by_module[module].append(v)
 
-    return emit_receipt("harvest", {
-        "tenant_id": TENANT_ID,
-        "period": period,
-        "total_violations": len(violations),
-        "by_module": {k: len(v) for k, v in by_module.items()},
-        "violations": violations,
-        "harvest_period_days": HARVEST_PERIOD_DAYS,
-    })
+    return emit_receipt(
+        "harvest",
+        {
+            "tenant_id": TENANT_ID,
+            "period": period,
+            "total_violations": len(violations),
+            "by_module": {k: len(v) for k, v in by_module.items()},
+            "violations": violations,
+            "harvest_period_days": HARVEST_PERIOD_DAYS,
+        },
+    )
 
 
 def infer_module_from_receipt(receipt: dict) -> str:
@@ -82,15 +85,16 @@ def rank_by_exposure(violations: list) -> list:
     Returns:
         List sorted by exposure (highest first)
     """
+
     def get_exposure(v):
         # Try various exposure fields
         return (
-            v.get("amount", 0) or
-            v.get("total_amount", 0) or
-            v.get("exposure", 0) or
-            v.get("liability", 0) or
-            v.get("fees_collected", 0) or
-            0
+            v.get("amount", 0)
+            or v.get("total_amount", 0)
+            or v.get("exposure", 0)
+            or v.get("liability", 0)
+            or v.get("fees_collected", 0)
+            or 0
         )
 
     ranked = sorted(violations, key=get_exposure, reverse=True)
@@ -119,19 +123,24 @@ def propose_remediation(violations: list) -> dict:
     # Propose remediation for recurring patterns
     for vtype, count in by_type.items():
         if count >= 3:  # Recurring pattern
-            proposals.append({
-                "violation_type": vtype,
-                "occurrence_count": count,
-                "proposed_action": get_remediation_action(vtype),
-                "priority": "high" if count >= 5 else "medium",
-            })
+            proposals.append(
+                {
+                    "violation_type": vtype,
+                    "occurrence_count": count,
+                    "proposed_action": get_remediation_action(vtype),
+                    "priority": "high" if count >= 5 else "medium",
+                }
+            )
 
-    return emit_receipt("remediation_proposal", {
-        "tenant_id": TENANT_ID,
-        "violations_analyzed": len(violations),
-        "recurring_patterns": len(proposals),
-        "proposals": proposals,
-    })
+    return emit_receipt(
+        "remediation_proposal",
+        {
+            "tenant_id": TENANT_ID,
+            "violations_analyzed": len(violations),
+            "recurring_patterns": len(proposals),
+            "proposals": proposals,
+        },
+    )
 
 
 def get_remediation_action(violation_type: str) -> str:

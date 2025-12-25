@@ -9,10 +9,10 @@ No receipt → not real.
 import hashlib
 import json
 from datetime import datetime
-from typing import Any
 
 try:
     import blake3
+
     HAS_BLAKE3 = True
 except ImportError:
     HAS_BLAKE3 = False
@@ -31,6 +31,7 @@ RECEIPT_SCHEMA = {
 
 class StopRule(Exception):
     """Raised when stoprule triggers. Never catch silently."""
+
     pass
 
 
@@ -56,7 +57,7 @@ def emit_receipt(receipt_type: str, data: dict) -> dict:
         "ts": datetime.utcnow().isoformat() + "Z",
         "tenant_id": data.get("tenant_id", TENANT_ID),
         "payload_hash": dual_hash(json.dumps(data, sort_keys=True)),
-        **data
+        **data,
     }
     # Append to ledger (stdout in dev, file in prod)
     print(json.dumps(receipt), flush=True)
@@ -74,50 +75,62 @@ def merkle(items: list) -> str:
     while len(hashes) > 1:
         if len(hashes) % 2:
             hashes.append(hashes[-1])
-        hashes = [dual_hash(hashes[i] + hashes[i+1])
-                  for i in range(0, len(hashes), 2)]
+        hashes = [
+            dual_hash(hashes[i] + hashes[i + 1]) for i in range(0, len(hashes), 2)
+        ]
     return hashes[0]
 
 
 # === STOPRULES ===
 
+
 def stoprule_hash_mismatch(expected: str, actual: str) -> None:
     """Emit anomaly and halt on hash mismatch."""
-    emit_receipt("anomaly", {
-        "metric": "hash_mismatch",
-        "expected": expected,
-        "actual": actual,
-        "delta": -1,
-        "action": "halt",
-        "tenant_id": TENANT_ID
-    })
+    emit_receipt(
+        "anomaly",
+        {
+            "metric": "hash_mismatch",
+            "expected": expected,
+            "actual": actual,
+            "delta": -1,
+            "action": "halt",
+            "tenant_id": TENANT_ID,
+        },
+    )
     raise StopRule(f"Hash mismatch: expected {expected[:16]}..., got {actual[:16]}...")
 
 
 def stoprule_unverified_claim(claim: dict) -> None:
     """Emit anomaly and escalate on unverified claim."""
-    emit_receipt("anomaly", {
-        "metric": "unverified_claim",
-        "claim": claim,
-        "delta": -1,
-        "action": "escalate",
-        "tenant_id": TENANT_ID
-    })
+    emit_receipt(
+        "anomaly",
+        {
+            "metric": "unverified_claim",
+            "claim": claim,
+            "delta": -1,
+            "action": "escalate",
+            "tenant_id": TENANT_ID,
+        },
+    )
     raise StopRule(f"Unverified claim: {claim.get('type', 'unknown')}")
 
 
-def emit_anomaly(metric: str, baseline: float, delta: float,
-                 classification: str, action: str) -> dict:
+def emit_anomaly(
+    metric: str, baseline: float, delta: float, classification: str, action: str
+) -> dict:
     """Emit anomaly receipt - used by all stoprules.
 
     Classifications: drift, degradation, violation, deviation, anti_pattern
     Actions: alert, escalate, halt, auto_fix
     """
-    return emit_receipt("anomaly", {
-        "metric": metric,
-        "baseline": baseline,
-        "delta": delta,
-        "classification": classification,
-        "action": action,
-        "tenant_id": TENANT_ID
-    })
+    return emit_receipt(
+        "anomaly",
+        {
+            "metric": metric,
+            "baseline": baseline,
+            "delta": delta,
+            "classification": classification,
+            "action": action,
+            "tenant_id": TENANT_ID,
+        },
+    )

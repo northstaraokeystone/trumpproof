@@ -1,7 +1,5 @@
 """Tests for TrumpProof License Module"""
 
-import pytest
-
 from src.license.ownership import (
     resolve_ownership,
     track_shell_company,
@@ -30,12 +28,12 @@ class TestLicenseOwnership:
             "parent_entity": {
                 "name": "Trump Organization",
                 "type": "corporation",
-            }
+            },
         }
         result = resolve_ownership(entity)
         assert result["receipt_type"] == "ownership_resolution"
         assert len(result["ownership_chain"]) >= 1
-        assert result["cta_exempt"] == True
+        assert result["cta_exempt"]
 
     def test_track_shell_company(self, capture_receipts):
         """track_shell_company should identify indicators."""
@@ -47,7 +45,7 @@ class TestLicenseOwnership:
         result = track_shell_company(entity, "Delaware")
         assert result["receipt_type"] == "shell_company"
         assert result["shell_score"] >= 0.4  # At least 2 indicators
-        assert result["likely_shell"] == True
+        assert result["likely_shell"]
 
     def test_flag_opacity(self, capture_receipts):
         """flag_opacity should score unresolved layers."""
@@ -84,7 +82,7 @@ class TestLicenseAttestation:
         }
         result = track_fee_payment("license-001", payment)
         assert result["receipt_type"] == "license_fee_payment"
-        assert result["is_foreign"] == True
+        assert result["is_foreign"]
 
     def test_verify_disclosure_incomplete(self, capture_receipts):
         """verify_disclosure should detect missing fields."""
@@ -95,7 +93,7 @@ class TestLicenseAttestation:
         }
         result = verify_disclosure("license-001", disclosed)
         assert result["receipt_type"] == "license_disclosure_verification"
-        assert result["adequate_disclosure"] == False
+        assert not result["adequate_disclosure"]
         assert len(result["missing_fields"]) == 3
 
 
@@ -107,9 +105,7 @@ class TestLicensePartner:
         partner = {
             "name": "Dar Global",
             "parent_company": "Dar Al Arkan",
-            "projects": [
-                {"name": "Trump Tower Jeddah", "value": 533_000_000}
-            ],
+            "projects": [{"name": "Trump Tower Jeddah", "value": 533_000_000}],
         }
         result = register_partner(partner, "Saudi Arabia")
         assert result["receipt_type"] == "partner_registration"
@@ -136,4 +132,4 @@ class TestLicensePartner:
         }
         result = cross_reference_pif(partner)
         assert result["receipt_type"] == "pif_cross_reference"
-        assert result["is_pif_connected"] == True
+        assert result["is_pif_connected"]

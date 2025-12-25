@@ -44,21 +44,24 @@ def compute_liability(tariff_data: list, ieepa_status: str = "pending") -> dict:
             "description": "IEEPA authority fully invalidated",
             "refund_liability": total_collected,
             "exposure_percentage": 100,
-        }
+        },
     }
 
     current_scenario = scenarios.get(ieepa_status, scenarios["affirmed"])
 
-    return emit_receipt("refund_liability", {
-        "tenant_id": TENANT_ID,
-        "total_collected": total_collected,
-        "ieepa_status": ieepa_status,
-        "baseline_liability": TARIFF_REFUND_LIABILITY,
-        "scenarios": scenarios,
-        "current_scenario": current_scenario,
-        "scotus_oral_args": "2025-11-05",
-        "decision_expected": "2026-Q1",
-    })
+    return emit_receipt(
+        "refund_liability",
+        {
+            "tenant_id": TENANT_ID,
+            "total_collected": total_collected,
+            "ieepa_status": ieepa_status,
+            "baseline_liability": TARIFF_REFUND_LIABILITY,
+            "scenarios": scenarios,
+            "current_scenario": current_scenario,
+            "scotus_oral_args": "2025-11-05",
+            "decision_expected": "2026-Q1",
+        },
+    )
 
 
 def track_claimant(claimant: dict, amount: float) -> dict:
@@ -73,21 +76,26 @@ def track_claimant(claimant: dict, amount: float) -> dict:
     """
     # Flag if claimant appears to be litigation finance
     is_litigation_finance = (
-        "litigation" in claimant.get("type", "").lower() or
-        "finance" in claimant.get("type", "").lower() or
-        claimant.get("purchased_rights", False)
+        "litigation" in claimant.get("type", "").lower()
+        or "finance" in claimant.get("type", "").lower()
+        or claimant.get("purchased_rights", False)
     )
 
-    return emit_receipt("refund_claimant", {
-        "tenant_id": TENANT_ID,
-        "claimant_name": claimant.get("name", "unknown"),
-        "claimant_type": claimant.get("type", "unknown"),
-        "claim_amount": amount,
-        "is_litigation_finance": is_litigation_finance,
-        "purchased_rights": claimant.get("purchased_rights", False),
-        "purchase_price": claimant.get("purchase_price", 0),
-        "discount_rate": claimant.get("discount_rate", 0),  # e.g., 0.25 = 25 cents/dollar
-    })
+    return emit_receipt(
+        "refund_claimant",
+        {
+            "tenant_id": TENANT_ID,
+            "claimant_name": claimant.get("name", "unknown"),
+            "claimant_type": claimant.get("type", "unknown"),
+            "claim_amount": amount,
+            "is_litigation_finance": is_litigation_finance,
+            "purchased_rights": claimant.get("purchased_rights", False),
+            "purchase_price": claimant.get("purchase_price", 0),
+            "discount_rate": claimant.get(
+                "discount_rate", 0
+            ),  # e.g., 0.25 = 25 cents/dollar
+        },
+    )
 
 
 def model_scotus_outcomes(scenarios: list) -> dict:
@@ -109,21 +117,29 @@ def model_scotus_outcomes(scenarios: list) -> dict:
         liability = TARIFF_REFUND_LIABILITY * (refund_pct / 100)
         weighted_liability = liability * probability
 
-        results.append({
-            "scenario": name,
-            "probability": probability,
-            "refund_percentage": refund_pct,
-            "raw_liability": liability,
-            "weighted_liability": weighted_liability,
-        })
+        results.append(
+            {
+                "scenario": name,
+                "probability": probability,
+                "refund_percentage": refund_pct,
+                "raw_liability": liability,
+                "weighted_liability": weighted_liability,
+            }
+        )
 
     expected_liability = sum(r["weighted_liability"] for r in results)
 
-    return emit_receipt("scotus_scenario", {
-        "tenant_id": TENANT_ID,
-        "scenarios": results,
-        "expected_liability": expected_liability,
-        "baseline_liability": TARIFF_REFUND_LIABILITY,
-        "expected_pct_of_baseline": (expected_liability / TARIFF_REFUND_LIABILITY * 100)
-            if TARIFF_REFUND_LIABILITY else 0,
-    })
+    return emit_receipt(
+        "scotus_scenario",
+        {
+            "tenant_id": TENANT_ID,
+            "scenarios": results,
+            "expected_liability": expected_liability,
+            "baseline_liability": TARIFF_REFUND_LIABILITY,
+            "expected_pct_of_baseline": (
+                expected_liability / TARIFF_REFUND_LIABILITY * 100
+            )
+            if TARIFF_REFUND_LIABILITY
+            else 0,
+        },
+    )

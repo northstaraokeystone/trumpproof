@@ -19,13 +19,16 @@ def ingest_customs_data(data: dict, tenant_id: str = TENANT_ID) -> dict:
     Returns:
         tariff_ingest_receipt with payload hash
     """
-    return emit_receipt("tariff_ingest", {
-        "tenant_id": tenant_id,
-        "revenue_amount": data.get("revenue_amount", 0),
-        "period": data.get("period", "unknown"),
-        "source": data.get("source", "cbp"),
-        "data_hash": dual_hash(str(data)),
-    })
+    return emit_receipt(
+        "tariff_ingest",
+        {
+            "tenant_id": tenant_id,
+            "revenue_amount": data.get("revenue_amount", 0),
+            "period": data.get("period", "unknown"),
+            "source": data.get("source", "cbp"),
+            "data_hash": dual_hash(str(data)),
+        },
+    )
 
 
 def compute_allocation(revenue: float, categories: list) -> dict:
@@ -44,13 +47,16 @@ def compute_allocation(revenue: float, categories: list) -> dict:
         pct = cat.get("percentage", 0)
         allocations[name] = revenue * (pct / 100)
 
-    return emit_receipt("tariff_allocation", {
-        "tenant_id": TENANT_ID,
-        "total_revenue": revenue,
-        "categories": categories,
-        "allocations": allocations,
-        "fy2025_baseline": TARIFF_FY2025_REVENUE,
-    })
+    return emit_receipt(
+        "tariff_allocation",
+        {
+            "tenant_id": TENANT_ID,
+            "total_revenue": revenue,
+            "categories": categories,
+            "allocations": allocations,
+            "fy2025_baseline": TARIFF_FY2025_REVENUE,
+        },
+    )
 
 
 def verify_claimed_vs_actual(claimed: dict, actual: dict) -> dict:
@@ -72,19 +78,22 @@ def verify_claimed_vs_actual(claimed: dict, actual: dict) -> dict:
                     "claimed": claimed[key],
                     "actual": actual[key],
                     "difference": diff,
-                    "percentage_diff": (diff / actual[key] * 100) if actual[key] else 0
+                    "percentage_diff": (diff / actual[key] * 100) if actual[key] else 0,
                 }
 
     match_status = "verified" if not discrepancies else "discrepancy_detected"
 
-    return emit_receipt("tariff_verification", {
-        "tenant_id": TENANT_ID,
-        "claimed": claimed,
-        "actual": actual,
-        "discrepancies": discrepancies,
-        "match_status": match_status,
-        "discrepancy_count": len(discrepancies),
-    })
+    return emit_receipt(
+        "tariff_verification",
+        {
+            "tenant_id": TENANT_ID,
+            "claimed": claimed,
+            "actual": actual,
+            "discrepancies": discrepancies,
+            "match_status": match_status,
+            "discrepancy_count": len(discrepancies),
+        },
+    )
 
 
 def track_trend(receipts: list, window: int = 12) -> dict:
@@ -121,12 +130,15 @@ def track_trend(receipts: list, window: int = 12) -> dict:
             slope = 0
             trend = "flat"
 
-    return emit_receipt("tariff_trend", {
-        "tenant_id": TENANT_ID,
-        "window": window,
-        "data_points": len(values),
-        "trend": trend,
-        "slope": slope,
-        "latest_value": values[-1] if values else 0,
-        "fy2025_target": TARIFF_FY2025_REVENUE,
-    })
+    return emit_receipt(
+        "tariff_trend",
+        {
+            "tenant_id": TENANT_ID,
+            "window": window,
+            "data_points": len(values),
+            "trend": trend,
+            "slope": slope,
+            "latest_value": values[-1] if values else 0,
+            "fy2025_target": TARIFF_FY2025_REVENUE,
+        },
+    )

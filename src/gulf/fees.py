@@ -25,20 +25,24 @@ def track_fee(fund_id: str, fee: dict) -> dict:
     Returns:
         fee_receipt
     """
-    return emit_receipt("management_fee", {
-        "tenant_id": TENANT_ID,
-        "fund_id": fund_id,
-        "fee_type": fee.get("type", "management"),
-        "fee_amount": fee.get("amount", 0),
-        "fee_period": fee.get("period", "unknown"),
-        "source": fee.get("source", "unknown"),
-        "is_guaranteed": fee.get("guaranteed", False),
-        "aum_at_time": fee.get("aum", 0),
-        "fee_percentage": (
-            fee.get("amount", 0) / fee.get("aum", 1) * 100
-            if fee.get("aum", 0) > 0 else 0
-        ),
-    })
+    return emit_receipt(
+        "management_fee",
+        {
+            "tenant_id": TENANT_ID,
+            "fund_id": fund_id,
+            "fee_type": fee.get("type", "management"),
+            "fee_amount": fee.get("amount", 0),
+            "fee_period": fee.get("period", "unknown"),
+            "source": fee.get("source", "unknown"),
+            "is_guaranteed": fee.get("guaranteed", False),
+            "aum_at_time": fee.get("aum", 0),
+            "fee_percentage": (
+                fee.get("amount", 0) / fee.get("aum", 1) * 100
+                if fee.get("aum", 0) > 0
+                else 0
+            ),
+        },
+    )
 
 
 def compute_fee_ratio(fees: float, returns: float) -> dict:
@@ -55,7 +59,7 @@ def compute_fee_ratio(fees: float, returns: float) -> dict:
     """
     if returns == 0:
         # Zero returns case - fees collected on nothing
-        ratio = float('inf')
+        ratio = float("inf")
         ratio_classification = "infinite"
     elif returns < 0:
         # Negative returns - even worse
@@ -65,19 +69,22 @@ def compute_fee_ratio(fees: float, returns: float) -> dict:
         ratio = fees / returns
         ratio_classification = "calculated"
 
-    excessive = ratio > FEE_TO_RETURNS_EXCESSIVE or ratio == float('inf')
+    excessive = ratio > FEE_TO_RETURNS_EXCESSIVE or ratio == float("inf")
 
-    return emit_receipt("fee_ratio", {
-        "tenant_id": TENANT_ID,
-        "fees_collected": fees,
-        "returns_generated": returns,
-        "ratio": ratio if ratio != float('inf') else "infinity",
-        "ratio_classification": ratio_classification,
-        "threshold": FEE_TO_RETURNS_EXCESSIVE,
-        "excessive": excessive,
-        "affinity_baseline_fees": GULF_FEES_COLLECTED,
-        "affinity_baseline_returns": 0,  # Zero returns documented
-    })
+    return emit_receipt(
+        "fee_ratio",
+        {
+            "tenant_id": TENANT_ID,
+            "fees_collected": fees,
+            "returns_generated": returns,
+            "ratio": ratio if ratio != float("inf") else "infinity",
+            "ratio_classification": ratio_classification,
+            "threshold": FEE_TO_RETURNS_EXCESSIVE,
+            "excessive": excessive,
+            "affinity_baseline_fees": GULF_FEES_COLLECTED,
+            "affinity_baseline_returns": 0,  # Zero returns documented
+        },
+    )
 
 
 def flag_excessive(ratio: float, threshold: float = FEE_TO_RETURNS_EXCESSIVE) -> dict:
@@ -90,26 +97,35 @@ def flag_excessive(ratio: float, threshold: float = FEE_TO_RETURNS_EXCESSIVE) ->
     Returns:
         excessive_fee_receipt
     """
-    is_excessive = ratio > threshold or ratio == float('inf')
+    is_excessive = ratio > threshold or ratio == float("inf")
 
     if is_excessive:
         emit_anomaly(
             metric="excessive_fees",
             baseline=threshold,
-            delta=ratio - threshold if ratio != float('inf') else 100,
+            delta=ratio - threshold if ratio != float("inf") else 100,
             classification="deviation",
-            action="alert"
+            action="alert",
         )
 
-    severity = "critical" if ratio == float('inf') or ratio > threshold * 10 else \
-               "high" if ratio > threshold * 5 else \
-               "medium" if ratio > threshold else "low"
+    severity = (
+        "critical"
+        if ratio == float("inf") or ratio > threshold * 10
+        else "high"
+        if ratio > threshold * 5
+        else "medium"
+        if ratio > threshold
+        else "low"
+    )
 
-    return emit_receipt("excessive_fee_flag", {
-        "tenant_id": TENANT_ID,
-        "ratio": ratio if ratio != float('inf') else "infinity",
-        "threshold": threshold,
-        "is_excessive": is_excessive,
-        "severity": severity,
-        "recommendation": "review_fee_structure" if is_excessive else "none",
-    })
+    return emit_receipt(
+        "excessive_fee_flag",
+        {
+            "tenant_id": TENANT_ID,
+            "ratio": ratio if ratio != float("inf") else "infinity",
+            "threshold": threshold,
+            "is_excessive": is_excessive,
+            "severity": severity,
+            "recommendation": "review_fee_structure" if is_excessive else "none",
+        },
+    )

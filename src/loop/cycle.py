@@ -34,13 +34,16 @@ def run_cycle(receipts: list = None, cycle_id: str = None) -> dict:
     # Compute cycle time
     cycle_time_ms = (time.time() - start_time) * 1000
 
-    return emit_cycle_receipt(cycle_id, {
-        "receipts_processed": len(receipts),
-        "state": state,
-        "analysis": analysis,
-        "cycle_time_ms": cycle_time_ms,
-        "target_cycle_seconds": LOOP_CYCLE_SECONDS,
-    })
+    return emit_cycle_receipt(
+        cycle_id,
+        {
+            "receipts_processed": len(receipts),
+            "state": state,
+            "analysis": analysis,
+            "cycle_time_ms": cycle_time_ms,
+            "target_cycle_seconds": LOOP_CYCLE_SECONDS,
+        },
+    )
 
 
 def sense(receipts: list) -> dict:
@@ -87,13 +90,19 @@ def infer_module(receipt_type: str) -> str:
 
     if "tariff" in type_lower or "exemption" in type_lower or "refund" in type_lower:
         return "tariff"
-    elif "detention" in type_lower or "border" in type_lower or "citizenship" in type_lower:
+    elif (
+        "detention" in type_lower
+        or "border" in type_lower
+        or "citizenship" in type_lower
+    ):
         return "border"
     elif "swf" in type_lower or "fara" in type_lower or "investment" in type_lower:
         return "gulf"
     elif "golf" in type_lower or "liv" in type_lower or "emolument" in type_lower:
         return "golf"
-    elif "license" in type_lower or "ownership" in type_lower or "partner" in type_lower:
+    elif (
+        "license" in type_lower or "ownership" in type_lower or "partner" in type_lower
+    ):
         return "license"
     elif "pif" in type_lower or "cross" in type_lower or "loop" in type_lower:
         return "loop"
@@ -123,13 +132,19 @@ def analyze(state: dict) -> dict:
             module_data = state["by_module"][module]
             # Check for violations/anomalies in this module
             for r in module_data.get("receipts", []):
-                if r.get("violation") or r.get("exceeds_threshold") or \
-                   r.get("excessive") or r.get("favoritism_detected"):
-                    analysis["priority_violations"].append({
-                        "module": module,
-                        "receipt_type": r.get("receipt_type"),
-                        "details": r,
-                    })
+                if (
+                    r.get("violation")
+                    or r.get("exceeds_threshold")
+                    or r.get("excessive")
+                    or r.get("favoritism_detected")
+                ):
+                    analysis["priority_violations"].append(
+                        {
+                            "module": module,
+                            "receipt_type": r.get("receipt_type"),
+                            "details": r,
+                        }
+                    )
 
     return analysis
 
@@ -144,14 +159,22 @@ def emit_cycle_receipt(cycle_id: str, metrics: dict) -> dict:
     Returns:
         loop_cycle_receipt
     """
-    return emit_receipt("loop_cycle", {
-        "tenant_id": TENANT_ID,
-        "cycle_id": cycle_id,
-        "receipts_processed": metrics.get("receipts_processed", 0),
-        "modules_active": metrics.get("analysis", {}).get("modules_active", []),
-        "anomalies_detected": metrics.get("analysis", {}).get("anomaly_count", 0),
-        "priority_violations": len(metrics.get("analysis", {}).get("priority_violations", [])),
-        "cycle_time_ms": metrics.get("cycle_time_ms", 0),
-        "target_cycle_seconds": metrics.get("target_cycle_seconds", LOOP_CYCLE_SECONDS),
-        "within_target": metrics.get("cycle_time_ms", 0) < LOOP_CYCLE_SECONDS * 1000,
-    })
+    return emit_receipt(
+        "loop_cycle",
+        {
+            "tenant_id": TENANT_ID,
+            "cycle_id": cycle_id,
+            "receipts_processed": metrics.get("receipts_processed", 0),
+            "modules_active": metrics.get("analysis", {}).get("modules_active", []),
+            "anomalies_detected": metrics.get("analysis", {}).get("anomaly_count", 0),
+            "priority_violations": len(
+                metrics.get("analysis", {}).get("priority_violations", [])
+            ),
+            "cycle_time_ms": metrics.get("cycle_time_ms", 0),
+            "target_cycle_seconds": metrics.get(
+                "target_cycle_seconds", LOOP_CYCLE_SECONDS
+            ),
+            "within_target": metrics.get("cycle_time_ms", 0)
+            < LOOP_CYCLE_SECONDS * 1000,
+        },
+    )

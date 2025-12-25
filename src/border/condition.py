@@ -39,22 +39,31 @@ def assess_conditions(facility_id: str, inspection: dict) -> dict:
     total_count = len(standards)
     compliance_rate = met_count / total_count if total_count > 0 else 0
 
-    classification = "adequate" if compliance_rate >= 0.9 else \
-                     "deficient" if compliance_rate >= 0.7 else \
-                     "critical" if compliance_rate >= 0.5 else "dangerous"
+    classification = (
+        "adequate"
+        if compliance_rate >= 0.9
+        else "deficient"
+        if compliance_rate >= 0.7
+        else "critical"
+        if compliance_rate >= 0.5
+        else "dangerous"
+    )
 
-    return emit_receipt("condition_assessment", {
-        "tenant_id": TENANT_ID,
-        "facility_id": facility_id,
-        "inspection_date": inspection.get("date", "unknown"),
-        "standards_assessed": standards,
-        "standards_met": met_count,
-        "standards_total": total_count,
-        "compliance_rate": compliance_rate,
-        "classification": classification,
-        "inspector": inspection.get("inspector", "unknown"),
-        "notes": inspection.get("notes", ""),
-    })
+    return emit_receipt(
+        "condition_assessment",
+        {
+            "tenant_id": TENANT_ID,
+            "facility_id": facility_id,
+            "inspection_date": inspection.get("date", "unknown"),
+            "standards_assessed": standards,
+            "standards_met": met_count,
+            "standards_total": total_count,
+            "compliance_rate": compliance_rate,
+            "classification": classification,
+            "inspector": inspection.get("inspector", "unknown"),
+            "notes": inspection.get("notes", ""),
+        },
+    )
 
 
 def track_violations(facility_id: str, violations: list) -> dict:
@@ -96,23 +105,27 @@ def track_violations(facility_id: str, violations: list) -> dict:
             baseline=0,
             delta=critical_count,
             classification="violation",
-            action="escalate"
+            action="escalate",
         )
 
-    return emit_receipt("violation_tracking", {
-        "tenant_id": TENANT_ID,
-        "facility_id": facility_id,
-        "total_violations": len(violations),
-        "critical_violations": critical_count,
-        "violations_by_category": categories,
-        "violations": violations,
-        "fort_bliss_baseline": 60,  # Fort Bliss violated 60+ standards in 50 days
-        "exceeds_baseline": len(violations) > 60,
-    })
+    return emit_receipt(
+        "violation_tracking",
+        {
+            "tenant_id": TENANT_ID,
+            "facility_id": facility_id,
+            "total_violations": len(violations),
+            "critical_violations": critical_count,
+            "violations_by_category": categories,
+            "violations": violations,
+            "fort_bliss_baseline": 60,  # Fort Bliss violated 60+ standards in 50 days
+            "exceeds_baseline": len(violations) > 60,
+        },
+    )
 
 
-def compute_death_rate(facility_id: str, period: str,
-                       deaths: int = 0, detainee_days: int = 0) -> dict:
+def compute_death_rate(
+    facility_id: str, period: str, deaths: int = 0, detainee_days: int = 0
+) -> dict:
     """Compute death rate per 10K detainee-days. Emit death_rate_receipt.
 
     Args:
@@ -136,19 +149,22 @@ def compute_death_rate(facility_id: str, period: str,
             baseline=BASELINE_RATE,
             delta=rate_per_10k - BASELINE_RATE,
             classification="degradation",
-            action="halt"
+            action="halt",
         )
 
-    return emit_receipt("death_rate", {
-        "tenant_id": TENANT_ID,
-        "facility_id": facility_id,
-        "period": period,
-        "deaths": deaths,
-        "detainee_days": detainee_days,
-        "rate_per_10k_days": rate_per_10k,
-        "baseline_rate": BASELINE_RATE,
-        "exceeds_baseline": rate_per_10k > BASELINE_RATE,
-        "rate_multiplier": rate_per_10k / BASELINE_RATE if BASELINE_RATE > 0 else 0,
-        "fy2025_deaths_documented": 32,  # 30-32 deaths documented
-        "deadliest_since": 2004,
-    })
+    return emit_receipt(
+        "death_rate",
+        {
+            "tenant_id": TENANT_ID,
+            "facility_id": facility_id,
+            "period": period,
+            "deaths": deaths,
+            "detainee_days": detainee_days,
+            "rate_per_10k_days": rate_per_10k,
+            "baseline_rate": BASELINE_RATE,
+            "exceeds_baseline": rate_per_10k > BASELINE_RATE,
+            "rate_multiplier": rate_per_10k / BASELINE_RATE if BASELINE_RATE > 0 else 0,
+            "fy2025_deaths_documented": 32,  # 30-32 deaths documented
+            "deadliest_since": 2004,
+        },
+    )

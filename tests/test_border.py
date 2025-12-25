@@ -1,7 +1,5 @@
 """Tests for TrumpProof Border Module"""
 
-import pytest
-
 from src.border.detention import (
     register_detainee,
     track_duration,
@@ -10,9 +8,7 @@ from src.border.detention import (
 )
 from src.border.contractor import (
     register_contractor,
-    track_contract,
     compute_cost_per_outcome,
-    cross_reference_donations,
 )
 from src.border.citizenship import (
     verify_citizenship,
@@ -21,7 +17,6 @@ from src.border.citizenship import (
 )
 from src.border.condition import (
     assess_conditions,
-    track_violations,
     compute_death_rate,
 )
 
@@ -40,7 +35,7 @@ class TestBorderDetention:
         result = track_duration(
             "detainee-001",
             intake_date="2025-01-01T00:00:00Z",
-            current_date="2025-01-15T00:00:00Z"
+            current_date="2025-01-15T00:00:00Z",
         )
         assert result["receipt_type"] == "detention_duration"
         assert result["duration_days"] == 14
@@ -59,10 +54,7 @@ class TestBorderDetention:
     def test_compute_cost_per_detainee(self, capture_receipts):
         """compute_cost_per_detainee should compute costs."""
         result = compute_cost_per_detainee(
-            "facility-001", "FY2025",
-            total_cost=15_000_000,
-            population=100,
-            days=365
+            "facility-001", "FY2025", total_cost=15_000_000, population=100, days=365
         )
         assert result["receipt_type"] == "detention_cost"
         # 15M / (100 * 365) ≈ $411/day
@@ -77,7 +69,7 @@ class TestBorderContractor:
         contractor = {
             "name": "Test Detention Inc",
             "type": "private",
-            "donations": [{"amount": 100_000, "recipient": "Trump PAC"}]
+            "donations": [{"amount": 100_000, "recipient": "Trump PAC"}],
         }
         result = register_contractor(contractor)
         assert result["receipt_type"] == "contractor_registration"
@@ -142,9 +134,7 @@ class TestBorderCondition:
     def test_compute_death_rate(self, capture_receipts):
         """compute_death_rate should compute rate per 10K days."""
         result = compute_death_rate(
-            "facility-001", "FY2025",
-            deaths=2,
-            detainee_days=100_000
+            "facility-001", "FY2025", deaths=2, detainee_days=100_000
         )
         assert result["receipt_type"] == "death_rate"
         # 2 deaths per 100K days = 0.2 per 10K days

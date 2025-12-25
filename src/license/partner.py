@@ -28,16 +28,21 @@ def register_partner(partner: dict, country: str) -> dict:
     Returns:
         partner_receipt
     """
-    return emit_receipt("partner_registration", {
-        "tenant_id": TENANT_ID,
-        "partner_id": partner.get("id", dual_hash(str(partner))[:12]),
-        "partner_name": partner.get("name", "unknown"),
-        "country": country,
-        "parent_company": partner.get("parent_company", None),
-        "projects": partner.get("projects", []),
-        "total_project_value": sum(p.get("value", 0) for p in partner.get("projects", [])),
-        "relationship_start": partner.get("relationship_start", "unknown"),
-    })
+    return emit_receipt(
+        "partner_registration",
+        {
+            "tenant_id": TENANT_ID,
+            "partner_id": partner.get("id", dual_hash(str(partner))[:12]),
+            "partner_name": partner.get("name", "unknown"),
+            "country": country,
+            "parent_company": partner.get("parent_company", None),
+            "projects": partner.get("projects", []),
+            "total_project_value": sum(
+                p.get("value", 0) for p in partner.get("projects", [])
+            ),
+            "relationship_start": partner.get("relationship_start", "unknown"),
+        },
+    )
 
 
 def assess_government_ties(partner_id: str, partner: dict = None) -> dict:
@@ -55,41 +60,52 @@ def assess_government_ties(partner_id: str, partner: dict = None) -> dict:
     ties = []
 
     if partner.get("state_owned"):
-        ties.append({
-            "type": "state_owned",
-            "description": "Partner is state-owned enterprise",
-        })
+        ties.append(
+            {
+                "type": "state_owned",
+                "description": "Partner is state-owned enterprise",
+            }
+        )
 
     if partner.get("government_contracts"):
-        ties.append({
-            "type": "government_contracts",
-            "value": partner.get("government_contract_value", 0),
-        })
+        ties.append(
+            {
+                "type": "government_contracts",
+                "value": partner.get("government_contract_value", 0),
+            }
+        )
 
     if partner.get("royal_family_connection"):
-        ties.append({
-            "type": "royal_family",
-            "description": partner.get("royal_connection_details", "unknown"),
-        })
+        ties.append(
+            {
+                "type": "royal_family",
+                "description": partner.get("royal_connection_details", "unknown"),
+            }
+        )
 
     if partner.get("swf_investment"):
-        ties.append({
-            "type": "swf_investment",
-            "fund": partner.get("swf_name", "unknown"),
-            "amount": partner.get("swf_investment_amount", 0),
-        })
+        ties.append(
+            {
+                "type": "swf_investment",
+                "fund": partner.get("swf_name", "unknown"),
+                "amount": partner.get("swf_investment_amount", 0),
+            }
+        )
 
     risk_level = "high" if len(ties) >= 2 else "medium" if ties else "low"
 
-    return emit_receipt("government_ties", {
-        "tenant_id": TENANT_ID,
-        "partner_id": partner_id,
-        "partner_name": partner.get("name", "unknown"),
-        "country": partner.get("country", "unknown"),
-        "ties": ties,
-        "tie_count": len(ties),
-        "risk_level": risk_level,
-    })
+    return emit_receipt(
+        "government_ties",
+        {
+            "tenant_id": TENANT_ID,
+            "partner_id": partner_id,
+            "partner_name": partner.get("name", "unknown"),
+            "country": partner.get("country", "unknown"),
+            "ties": ties,
+            "tie_count": len(ties),
+            "risk_level": risk_level,
+        },
+    )
 
 
 def cross_reference_pif(partner: dict) -> dict:
@@ -110,38 +126,49 @@ def cross_reference_pif(partner: dict) -> dict:
 
     # Direct PIF investment
     if partner.get("pif_investment"):
-        pif_connections.append({
-            "type": "direct_investment",
-            "amount": partner.get("pif_investment_amount", 0),
-        })
+        pif_connections.append(
+            {
+                "type": "direct_investment",
+                "amount": partner.get("pif_investment_amount", 0),
+            }
+        )
 
     # PIF-connected parent company
     parent = partner.get("parent_company", "").lower()
     if "dar" in parent or "arkan" in parent:
-        pif_connections.append({
-            "type": "pif_ecosystem",
-            "entity": partner.get("parent_company"),
-            "connection": "Dar Al Arkan / Dar Global",
-        })
+        pif_connections.append(
+            {
+                "type": "pif_ecosystem",
+                "entity": partner.get("parent_company"),
+                "connection": "Dar Al Arkan / Dar Global",
+            }
+        )
 
     # Saudi government connection (implies PIF connection)
-    if partner.get("country", "").lower() == "saudi arabia" and partner.get("government_ties"):
-        pif_connections.append({
-            "type": "saudi_government",
-            "description": "Saudi government ties imply PIF connection potential",
-        })
+    if partner.get("country", "").lower() == "saudi arabia" and partner.get(
+        "government_ties"
+    ):
+        pif_connections.append(
+            {
+                "type": "saudi_government",
+                "description": "Saudi government ties imply PIF connection potential",
+            }
+        )
 
     is_pif_connected = len(pif_connections) > 0
 
-    return emit_receipt("pif_cross_reference", {
-        "tenant_id": TENANT_ID,
-        "partner_id": partner.get("id", dual_hash(str(partner))[:12]),
-        "partner_name": partner.get("name", "unknown"),
-        "pif_connections": pif_connections,
-        "is_pif_connected": is_pif_connected,
-        "pif_connection_count": len(pif_connections),
-        # Cross-domain PIF exposure
-        "pif_gulf_exposure": GULF_PIF_INVESTMENT,  # $2B Kushner
-        "pif_golf_exposure": GOLF_LIV_PIF_INVESTMENT,  # $4.58B LIV
-        "pif_total_documented": GULF_PIF_INVESTMENT + GOLF_LIV_PIF_INVESTMENT,
-    })
+    return emit_receipt(
+        "pif_cross_reference",
+        {
+            "tenant_id": TENANT_ID,
+            "partner_id": partner.get("id", dual_hash(str(partner))[:12]),
+            "partner_name": partner.get("name", "unknown"),
+            "pif_connections": pif_connections,
+            "is_pif_connected": is_pif_connected,
+            "pif_connection_count": len(pif_connections),
+            # Cross-domain PIF exposure
+            "pif_gulf_exposure": GULF_PIF_INVESTMENT,  # $2B Kushner
+            "pif_golf_exposure": GOLF_LIV_PIF_INVESTMENT,  # $4.58B LIV
+            "pif_total_documented": GULF_PIF_INVESTMENT + GOLF_LIV_PIF_INVESTMENT,
+        },
+    )

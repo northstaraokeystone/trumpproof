@@ -32,9 +32,11 @@ def assess_emolument(payment: dict, source: dict) -> dict:
     """
     # Emolument criteria
     is_foreign = source.get("country", "").lower() not in ["us", "usa", "united states"]
-    is_government = source.get("is_government", False) or \
-                    source.get("is_state_owned", False) or \
-                    source.get("is_sovereign", False)
+    is_government = (
+        source.get("is_government", False)
+        or source.get("is_state_owned", False)
+        or source.get("is_sovereign", False)
+    )
     amount = payment.get("amount", 0)
 
     # Per Messitte: "almost anything of value"
@@ -46,22 +48,25 @@ def assess_emolument(payment: dict, source: dict) -> dict:
             baseline=EMOLUMENTS_DISCLOSURE_THRESHOLD,
             delta=amount - EMOLUMENTS_DISCLOSURE_THRESHOLD,
             classification="violation",
-            action="alert"
+            action="alert",
         )
 
-    return emit_receipt("emolument_assessment", {
-        "tenant_id": TENANT_ID,
-        "payment_id": payment.get("id", "unknown"),
-        "amount": amount,
-        "source_name": source.get("name", "unknown"),
-        "source_country": source.get("country", "unknown"),
-        "is_foreign": is_foreign,
-        "is_government": is_government,
-        "is_emolument": is_emolument,
-        "disclosure_threshold": EMOLUMENTS_DISCLOSURE_THRESHOLD,
-        "exceeds_threshold": amount >= EMOLUMENTS_DISCLOSURE_THRESHOLD,
-        "messitte_standard": "almost anything of value from foreign governments",
-    })
+    return emit_receipt(
+        "emolument_assessment",
+        {
+            "tenant_id": TENANT_ID,
+            "payment_id": payment.get("id", "unknown"),
+            "amount": amount,
+            "source_name": source.get("name", "unknown"),
+            "source_country": source.get("country", "unknown"),
+            "is_foreign": is_foreign,
+            "is_government": is_government,
+            "is_emolument": is_emolument,
+            "disclosure_threshold": EMOLUMENTS_DISCLOSURE_THRESHOLD,
+            "exceeds_threshold": amount >= EMOLUMENTS_DISCLOSURE_THRESHOLD,
+            "messitte_standard": "almost anything of value from foreign governments",
+        },
+    )
 
 
 def track_foreign_government(payments: list, government: str) -> dict:
@@ -75,9 +80,12 @@ def track_foreign_government(payments: list, government: str) -> dict:
         government_tracking_receipt
     """
     gov_lower = government.lower()
-    matching = [p for p in payments
-                if p.get("source_country", "").lower() == gov_lower or
-                   p.get("source_name", "").lower() == gov_lower]
+    matching = [
+        p
+        for p in payments
+        if p.get("source_country", "").lower() == gov_lower
+        or p.get("source_name", "").lower() == gov_lower
+    ]
 
     total = sum(p.get("amount", 0) for p in matching)
 
@@ -90,15 +98,18 @@ def track_foreign_government(payments: list, government: str) -> dict:
         by_property[prop]["total"] += p.get("amount", 0)
         by_property[prop]["count"] += 1
 
-    return emit_receipt("government_tracking", {
-        "tenant_id": TENANT_ID,
-        "government": government,
-        "payment_count": len(matching),
-        "total_amount": total,
-        "by_property": by_property,
-        "properties_count": len(by_property),
-        "exceeds_disclosure_threshold": total >= EMOLUMENTS_DISCLOSURE_THRESHOLD,
-    })
+    return emit_receipt(
+        "government_tracking",
+        {
+            "tenant_id": TENANT_ID,
+            "government": government,
+            "payment_count": len(matching),
+            "total_amount": total,
+            "by_property": by_property,
+            "properties_count": len(by_property),
+            "exceeds_disclosure_threshold": total >= EMOLUMENTS_DISCLOSURE_THRESHOLD,
+        },
+    )
 
 
 def compute_exposure(payments: list) -> dict:
@@ -117,8 +128,14 @@ def compute_exposure(payments: list) -> dict:
     emoluments = []
     for p in payments:
         source = p.get("source", {})
-        is_foreign = source.get("country", "").lower() not in ["us", "usa", "united states"]
-        is_government = source.get("is_government", False) or source.get("is_sovereign", False)
+        is_foreign = source.get("country", "").lower() not in [
+            "us",
+            "usa",
+            "united states",
+        ]
+        is_government = source.get("is_government", False) or source.get(
+            "is_sovereign", False
+        )
 
         if is_foreign and is_government:
             emoluments.append(p)
@@ -133,15 +150,20 @@ def compute_exposure(payments: list) -> dict:
             by_country[country] = 0
         by_country[country] += p.get("amount", 0)
 
-    return emit_receipt("emoluments_exposure", {
-        "tenant_id": TENANT_ID,
-        "total_payments_analyzed": total_payments,
-        "total_payment_amount": total_amount,
-        "emolument_count": len(emoluments),
-        "emoluments_total": emoluments_total,
-        "emoluments_percentage": (emoluments_total / total_amount * 100) if total_amount > 0 else 0,
-        "by_country": by_country,
-        "countries_count": len(by_country),
-        "crew_documented_baseline": 7_800_000,  # $7.8M minimum
-        "estimated_upper_bound": 160_000_000,   # $160M estimated
-    })
+    return emit_receipt(
+        "emoluments_exposure",
+        {
+            "tenant_id": TENANT_ID,
+            "total_payments_analyzed": total_payments,
+            "total_payment_amount": total_amount,
+            "emolument_count": len(emoluments),
+            "emoluments_total": emoluments_total,
+            "emoluments_percentage": (emoluments_total / total_amount * 100)
+            if total_amount > 0
+            else 0,
+            "by_country": by_country,
+            "countries_count": len(by_country),
+            "crew_documented_baseline": 7_800_000,  # $7.8M minimum
+            "estimated_upper_bound": 160_000_000,  # $160M estimated
+        },
+    )

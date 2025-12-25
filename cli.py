@@ -67,18 +67,24 @@ def run_test():
     print(f"✓ dual_hash: {h[:32]}...", file=sys.stderr)
 
     # Emit test receipt
-    r = emit_receipt("test", {
-        "tenant_id": TENANT_ID,
-        "domain": "validation",
-        "message": "TrumpProof validation successful",
-    })
+    r = emit_receipt(
+        "test",
+        {
+            "tenant_id": TENANT_ID,
+            "domain": "validation",
+            "message": "TrumpProof validation successful",
+        },
+    )
     assert "receipt_type" in r
     assert r["tenant_id"] == TENANT_ID
     print("✓ emit_receipt: functional", file=sys.stderr)
 
     # Test constants
     print(f"✓ Tariff FY2025: ${TARIFF_FY2025_REVENUE / 1e9:.0f}B", file=sys.stderr)
-    print(f"✓ Border allocation: ${BORDER_FOUR_YEAR_ALLOCATION / 1e9:.0f}B", file=sys.stderr)
+    print(
+        f"✓ Border allocation: ${BORDER_FOUR_YEAR_ALLOCATION / 1e9:.0f}B",
+        file=sys.stderr,
+    )
     print(f"✓ PIF exposure: ${PIF_TOTAL_EXPOSURE / 1e9:.1f}B", file=sys.stderr)
 
     print("\n=== PASS: Quick validation complete ===", file=sys.stderr)
@@ -107,15 +113,22 @@ def run_scenario(scenario_name: str):
     """Run specific scenario."""
     try:
         from src.sim import run_scenario as sim_run_scenario
+
         result = sim_run_scenario(scenario_name)
-        print(json.dumps({
-            "scenario": result.scenario,
-            "passed": result.passed,
-            "message": result.message,
-            "n_cycles": result.n_cycles,
-            "violations": len(result.violations),
-            "pif_domains": result.pif_domain_count,
-        }, indent=2), file=sys.stderr)
+        print(
+            json.dumps(
+                {
+                    "scenario": result.scenario,
+                    "passed": result.passed,
+                    "message": result.message,
+                    "n_cycles": result.n_cycles,
+                    "violations": len(result.violations),
+                    "pif_domains": result.pif_domain_count,
+                },
+                indent=2,
+            ),
+            file=sys.stderr,
+        )
         return 0 if result.passed else 1
     except Exception as e:
         print(f"Error running scenario: {e}", file=sys.stderr)
@@ -126,6 +139,7 @@ def run_all_scenarios():
     """Run all 6 mandatory scenarios."""
     try:
         from src.sim import run_all_scenarios as sim_run_all
+
         results = sim_run_all()
 
         print("\n=== TrumpProof Scenario Results ===", file=sys.stderr)
@@ -136,7 +150,10 @@ def run_all_scenarios():
             if not result.passed:
                 all_passed = False
 
-        print(f"\n{'=== ALL SCENARIOS PASSED ===' if all_passed else '=== SOME SCENARIOS FAILED ==='}", file=sys.stderr)
+        print(
+            f"\n{'=== ALL SCENARIOS PASSED ===' if all_passed else '=== SOME SCENARIOS FAILED ==='}",
+            file=sys.stderr,
+        )
         return 0 if all_passed else 1
     except Exception as e:
         print(f"Error running scenarios: {e}", file=sys.stderr)

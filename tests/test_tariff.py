@@ -1,12 +1,9 @@
 """Tests for TrumpProof Tariff Module"""
 
-import pytest
-
 from src.tariff.revenue import (
     ingest_customs_data,
     compute_allocation,
     verify_claimed_vs_actual,
-    track_trend,
 )
 from src.tariff.exemption import (
     register_exemption,
@@ -22,7 +19,6 @@ from src.tariff.refund import (
 from src.tariff.lobby import (
     ingest_lda_filings,
     cross_reference,
-    detect_pattern,
 )
 
 

@@ -1,7 +1,5 @@
 """Tests for TrumpProof Golf Module"""
 
-import pytest
-
 from src.golf.payment import (
     register_payment,
     classify_source,
@@ -46,7 +44,7 @@ class TestGolfPayment:
         assert result["receipt_type"] == "source_classification"
         assert result["location_classification"] == "foreign"
         assert result["entity_type"] == "government"
-        assert result["emoluments_concern"] == True
+        assert result["emoluments_concern"]
 
     def test_aggregate_by_country(self, capture_receipts):
         """aggregate_by_country should group payments."""
@@ -69,7 +67,7 @@ class TestGolfEvent:
         venue = {"name": "Trump Doral", "is_trump_property": True}
         result = register_event(event, venue)
         assert result["receipt_type"] == "golf_event"
-        assert result["is_trump_property"] == True
+        assert result["is_trump_property"]
 
     def test_track_liv_event(self, capture_receipts):
         """track_liv_event should track PIF funding."""
@@ -81,7 +79,7 @@ class TestGolfEvent:
         result = track_liv_event(event, pif_funding=46_500_000)
         assert result["receipt_type"] == "liv_event"
         assert result["pif_ownership_percentage"] == 93
-        assert result["saudi_government_connection"] == True
+        assert result["saudi_government_connection"]
 
     def test_compute_venue_revenue(self, capture_receipts):
         """compute_venue_revenue should compute LIV share."""
@@ -103,7 +101,7 @@ class TestGolfSanctions:
         entity = {"name": "Test Corp", "country": "USA"}
         result = screen_entity(entity, sdn_list=[])
         assert result["receipt_type"] == "sanctions_screening"
-        assert result["cleared"] == True
+        assert result["cleared"]
 
     def test_screen_transaction(self, capture_receipts):
         """screen_transaction should screen both parties."""
@@ -115,7 +113,7 @@ class TestGolfSanctions:
         }
         result = screen_transaction(transaction, sdn_list=[])
         assert result["receipt_type"] == "transaction_screening"
-        assert result["blocked"] == False
+        assert not result["blocked"]
 
     def test_flag_match(self, capture_receipts):
         """flag_match should flag with severity."""
@@ -138,7 +136,7 @@ class TestGolfEmoluments:
         }
         result = assess_emolument(payment, source)
         assert result["receipt_type"] == "emolument_assessment"
-        assert result["is_emolument"] == True
+        assert result["is_emolument"]
 
     def test_track_foreign_government(self, capture_receipts):
         """track_foreign_government should aggregate by country."""
@@ -153,7 +151,10 @@ class TestGolfEmoluments:
     def test_compute_exposure(self, capture_receipts):
         """compute_exposure should compute total emoluments."""
         payments = [
-            {"amount": 100_000, "source": {"country": "Saudi Arabia", "is_government": True}},
+            {
+                "amount": 100_000,
+                "source": {"country": "Saudi Arabia", "is_government": True},
+            },
             {"amount": 50_000, "source": {"country": "USA", "is_government": False}},
         ]
         result = compute_exposure(payments)

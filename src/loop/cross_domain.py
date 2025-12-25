@@ -7,8 +7,6 @@ Receipts: overlap_receipt, flow_receipt, centrality_receipt, pif_connection_rece
 
 from ..core import emit_receipt, TENANT_ID
 from ..constants import (
-    GULF_PIF_INVESTMENT,
-    GOLF_LIV_PIF_INVESTMENT,
     PIF_TOTAL_EXPOSURE,
 )
 
@@ -38,23 +36,28 @@ def detect_entity_overlap(modules: dict) -> dict:
     overlaps = []
     for entity, module_set in entity_modules.items():
         if len(module_set) >= 2:
-            overlaps.append({
-                "entity": entity,
-                "modules": list(module_set),
-                "module_count": len(module_set),
-            })
+            overlaps.append(
+                {
+                    "entity": entity,
+                    "modules": list(module_set),
+                    "module_count": len(module_set),
+                }
+            )
 
     # Sort by module count (most cross-domain first)
     overlaps.sort(key=lambda x: x["module_count"], reverse=True)
 
-    return emit_receipt("entity_overlap", {
-        "tenant_id": TENANT_ID,
-        "modules_analyzed": list(modules.keys()),
-        "total_entities": len(entity_modules),
-        "overlapping_entities": len(overlaps),
-        "overlaps": overlaps[:50],  # Top 50
-        "max_overlap": overlaps[0]["module_count"] if overlaps else 0,
-    })
+    return emit_receipt(
+        "entity_overlap",
+        {
+            "tenant_id": TENANT_ID,
+            "modules_analyzed": list(modules.keys()),
+            "total_entities": len(entity_modules),
+            "overlapping_entities": len(overlaps),
+            "overlaps": overlaps[:50],  # Top 50
+            "max_overlap": overlaps[0]["module_count"] if overlaps else 0,
+        },
+    )
 
 
 def extract_entities(receipt: dict) -> list:
@@ -63,9 +66,19 @@ def extract_entities(receipt: dict) -> list:
 
     # Check various entity fields
     entity_fields = [
-        "entity_id", "entity_name", "applicant", "contractor_id", "contractor_name",
-        "partner_id", "partner_name", "source_name", "recipient_name",
-        "fund_id", "fund_name", "licensor_name", "licensee_name"
+        "entity_id",
+        "entity_name",
+        "applicant",
+        "contractor_id",
+        "contractor_name",
+        "partner_id",
+        "partner_name",
+        "source_name",
+        "recipient_name",
+        "fund_id",
+        "fund_name",
+        "licensor_name",
+        "licensee_name",
     ]
 
     for field in entity_fields:
@@ -99,37 +112,42 @@ def trace_money_flow(entity_id: str, receipts: list) -> dict:
 
         # Extract money flow
         amount = (
-            r.get("amount", 0) or
-            r.get("payment_amount", 0) or
-            r.get("fee_amount", 0) or
-            r.get("contract_value", 0) or
-            0
+            r.get("amount", 0)
+            or r.get("payment_amount", 0)
+            or r.get("fee_amount", 0)
+            or r.get("contract_value", 0)
+            or 0
         )
 
         if amount > 0:
             direction = determine_flow_direction(r, entity_lower)
-            flows.append({
-                "receipt_type": r.get("receipt_type"),
-                "amount": amount,
-                "direction": direction,
-                "counterparty": get_counterparty(r, entity_lower),
-                "module": infer_module(r.get("receipt_type", "")),
-            })
+            flows.append(
+                {
+                    "receipt_type": r.get("receipt_type"),
+                    "amount": amount,
+                    "direction": direction,
+                    "counterparty": get_counterparty(r, entity_lower),
+                    "module": infer_module(r.get("receipt_type", "")),
+                }
+            )
 
             if direction == "inflow":
                 total_inflow += amount
             else:
                 total_outflow += amount
 
-    return emit_receipt("money_flow", {
-        "tenant_id": TENANT_ID,
-        "entity_id": entity_id,
-        "total_inflow": total_inflow,
-        "total_outflow": total_outflow,
-        "net_flow": total_inflow - total_outflow,
-        "flow_count": len(flows),
-        "flows": flows,
-    })
+    return emit_receipt(
+        "money_flow",
+        {
+            "tenant_id": TENANT_ID,
+            "entity_id": entity_id,
+            "total_inflow": total_inflow,
+            "total_outflow": total_outflow,
+            "net_flow": total_inflow - total_outflow,
+            "flow_count": len(flows),
+            "flows": flows,
+        },
+    )
 
 
 def determine_flow_direction(receipt: dict, entity: str) -> str:
@@ -191,34 +209,36 @@ def compute_centrality(entities: list, receipts: list) -> dict:
             if entity_lower in extracted:
                 connections += 1
                 modules_touched.add(infer_module(r.get("receipt_type", "")))
-                total_value += (
-                    r.get("amount", 0) or
-                    r.get("payment_amount", 0) or
-                    0
-                )
+                total_value += r.get("amount", 0) or r.get("payment_amount", 0) or 0
 
         # Centrality score: connections * modules * log(value + 1)
         import math
+
         centrality = connections * len(modules_touched) * math.log10(total_value + 1)
 
-        scores.append({
-            "entity": entity,
-            "connections": connections,
-            "modules": list(modules_touched),
-            "module_count": len(modules_touched),
-            "total_value": total_value,
-            "centrality_score": centrality,
-        })
+        scores.append(
+            {
+                "entity": entity,
+                "connections": connections,
+                "modules": list(modules_touched),
+                "module_count": len(modules_touched),
+                "total_value": total_value,
+                "centrality_score": centrality,
+            }
+        )
 
     # Sort by centrality
     scores.sort(key=lambda x: x["centrality_score"], reverse=True)
 
-    return emit_receipt("centrality", {
-        "tenant_id": TENANT_ID,
-        "entities_analyzed": len(entities),
-        "scores": scores,
-        "most_central": scores[0] if scores else None,
-    })
+    return emit_receipt(
+        "centrality",
+        {
+            "tenant_id": TENANT_ID,
+            "entities_analyzed": len(entities),
+            "scores": scores,
+            "most_central": scores[0] if scores else None,
+        },
+    )
 
 
 def flag_pif_connection(entity: dict) -> dict:
@@ -257,12 +277,15 @@ def flag_pif_connection(entity: dict) -> dict:
 
     is_pif_connected = len(pif_indicators) > 0
 
-    return emit_receipt("pif_connection", {
-        "tenant_id": TENANT_ID,
-        "entity_id": entity.get("id", "unknown"),
-        "entity_name": entity.get("name", "unknown"),
-        "pif_indicators": pif_indicators,
-        "is_pif_connected": is_pif_connected,
-        "pif_total_exposure": PIF_TOTAL_EXPOSURE,
-        "domains": ["gulf", "golf", "license"] if is_pif_connected else [],
-    })
+    return emit_receipt(
+        "pif_connection",
+        {
+            "tenant_id": TENANT_ID,
+            "entity_id": entity.get("id", "unknown"),
+            "entity_name": entity.get("name", "unknown"),
+            "pif_indicators": pif_indicators,
+            "is_pif_connected": is_pif_connected,
+            "pif_total_exposure": PIF_TOTAL_EXPOSURE,
+            "domains": ["gulf", "golf", "license"] if is_pif_connected else [],
+        },
+    )

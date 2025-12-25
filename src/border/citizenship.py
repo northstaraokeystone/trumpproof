@@ -34,25 +34,33 @@ def verify_citizenship(detainee_id: str, documents: list) -> dict:
 
     if strong_count > 0:
         verification_strength = "high"
-        citizenship_likely = any(d.get("indicates_citizenship", False) for d in documents)
+        citizenship_likely = any(
+            d.get("indicates_citizenship", False) for d in documents
+        )
     elif medium_count > 0:
         verification_strength = "medium"
-        citizenship_likely = any(d.get("indicates_citizenship", False) for d in documents)
+        citizenship_likely = any(
+            d.get("indicates_citizenship", False) for d in documents
+        )
     else:
         verification_strength = "low"
         citizenship_likely = False
 
-    return emit_receipt("citizenship_verification", {
-        "tenant_id": TENANT_ID,
-        "detainee_id": detainee_id,
-        "documents_reviewed": len(documents),
-        "document_types": document_types,
-        "strong_document_count": strong_count,
-        "medium_document_count": medium_count,
-        "verification_strength": verification_strength,
-        "citizenship_likely": citizenship_likely,
-        "requires_further_review": verification_strength == "low" or citizenship_likely,
-    })
+    return emit_receipt(
+        "citizenship_verification",
+        {
+            "tenant_id": TENANT_ID,
+            "detainee_id": detainee_id,
+            "documents_reviewed": len(documents),
+            "document_types": document_types,
+            "strong_document_count": strong_count,
+            "medium_document_count": medium_count,
+            "verification_strength": verification_strength,
+            "citizenship_likely": citizenship_likely,
+            "requires_further_review": verification_strength == "low"
+            or citizenship_likely,
+        },
+    )
 
 
 def flag_us_citizen(detainee_id: str, evidence: dict) -> dict:
@@ -73,21 +81,24 @@ def flag_us_citizen(detainee_id: str, evidence: dict) -> dict:
         baseline=0,
         delta=1,
         classification="violation",
-        action="escalate"
+        action="escalate",
     )
 
-    return emit_receipt("citizen_flag", {
-        "tenant_id": TENANT_ID,
-        "detainee_id": detainee_id,
-        "evidence_type": evidence.get("type", "unknown"),
-        "evidence_description": evidence.get("description", ""),
-        "evidence_strength": evidence.get("strength", "unknown"),
-        "birthplace": evidence.get("birthplace", "unknown"),
-        "parent_citizenship": evidence.get("parent_citizenship", "unknown"),
-        "military_service": evidence.get("military_service", False),
-        "priority": "CRITICAL",
-        "action_required": "IMMEDIATE_REVIEW",
-    })
+    return emit_receipt(
+        "citizen_flag",
+        {
+            "tenant_id": TENANT_ID,
+            "detainee_id": detainee_id,
+            "evidence_type": evidence.get("type", "unknown"),
+            "evidence_description": evidence.get("description", ""),
+            "evidence_strength": evidence.get("strength", "unknown"),
+            "birthplace": evidence.get("birthplace", "unknown"),
+            "parent_citizenship": evidence.get("parent_citizenship", "unknown"),
+            "military_service": evidence.get("military_service", False),
+            "priority": "CRITICAL",
+            "action_required": "IMMEDIATE_REVIEW",
+        },
+    )
 
 
 def track_wrongful_detention(cases: list) -> dict:
@@ -120,24 +131,37 @@ def track_wrongful_detention(cases: list) -> dict:
             categories["disabled"] += 1
         if case.get("age", 0) >= 65:
             categories["elderly"] += 1
-        if not any([case.get("military_veteran"), case.get("age", 99) < 18,
-                    case.get("disabled"), case.get("age", 0) >= 65]):
+        if not any(
+            [
+                case.get("military_veteran"),
+                case.get("age", 99) < 18,
+                case.get("disabled"),
+                case.get("age", 0) >= 65,
+            ]
+        ):
             categories["other"] += 1
 
     # Resolution tracking
     resolved = sum(1 for c in cases if c.get("resolved"))
-    still_detained = sum(1 for c in cases if not c.get("resolved") and not c.get("deported"))
+    still_detained = sum(
+        1 for c in cases if not c.get("resolved") and not c.get("deported")
+    )
     wrongfully_deported = sum(1 for c in cases if c.get("deported"))
 
-    return emit_receipt("wrongful_detention_tracking", {
-        "tenant_id": TENANT_ID,
-        "total_cases": total_cases,
-        "total_wrongful_detention_days": total_days,
-        "average_detention_days": total_days / total_cases if total_cases > 0 else 0,
-        "categories": categories,
-        "resolved": resolved,
-        "still_detained": still_detained,
-        "wrongfully_deported": wrongfully_deported,
-        "documented_baseline": 170,  # ProPublica: 170+ in first 9 months
-        "constitutional_violations": total_cases,  # Each is a potential 4th/5th/14th Amendment violation
-    })
+    return emit_receipt(
+        "wrongful_detention_tracking",
+        {
+            "tenant_id": TENANT_ID,
+            "total_cases": total_cases,
+            "total_wrongful_detention_days": total_days,
+            "average_detention_days": total_days / total_cases
+            if total_cases > 0
+            else 0,
+            "categories": categories,
+            "resolved": resolved,
+            "still_detained": still_detained,
+            "wrongfully_deported": wrongfully_deported,
+            "documented_baseline": 170,  # ProPublica: 170+ in first 9 months
+            "constitutional_violations": total_cases,  # Each is a potential 4th/5th/14th Amendment violation
+        },
+    )

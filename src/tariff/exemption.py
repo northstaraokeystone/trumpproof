@@ -24,19 +24,23 @@ def register_exemption(application: dict) -> dict:
     Returns:
         exemption_application_receipt
     """
-    return emit_receipt("exemption_application", {
-        "tenant_id": TENANT_ID,
-        "applicant": application.get("applicant", "unknown"),
-        "product": application.get("product", "unknown"),
-        "hts_code": application.get("hts_code", ""),
-        "amount_requested": application.get("amount_requested", 0),
-        "justification": application.get("justification", ""),
-        "application_hash": dual_hash(str(application)),
-    })
+    return emit_receipt(
+        "exemption_application",
+        {
+            "tenant_id": TENANT_ID,
+            "applicant": application.get("applicant", "unknown"),
+            "product": application.get("product", "unknown"),
+            "hts_code": application.get("hts_code", ""),
+            "amount_requested": application.get("amount_requested", 0),
+            "justification": application.get("justification", ""),
+            "application_hash": dual_hash(str(application)),
+        },
+    )
 
 
-def track_approval(exemption_id: str, outcome: str, rationale: str,
-                   lobbying_cross_ref: str = "") -> dict:
+def track_approval(
+    exemption_id: str, outcome: str, rationale: str, lobbying_cross_ref: str = ""
+) -> dict:
     """Track approval/denial with rationale. Emit exemption_outcome_receipt.
 
     Args:
@@ -48,14 +52,17 @@ def track_approval(exemption_id: str, outcome: str, rationale: str,
     Returns:
         exemption_outcome_receipt
     """
-    return emit_receipt("exemption_outcome", {
-        "tenant_id": TENANT_ID,
-        "exemption_id": exemption_id,
-        "outcome": outcome,
-        "rationale": rationale,
-        "lobbying_cross_ref": lobbying_cross_ref,
-        "has_documented_criteria": bool(rationale and len(rationale) > 10),
-    })
+    return emit_receipt(
+        "exemption_outcome",
+        {
+            "tenant_id": TENANT_ID,
+            "exemption_id": exemption_id,
+            "outcome": outcome,
+            "rationale": rationale,
+            "lobbying_cross_ref": lobbying_cross_ref,
+            "has_documented_criteria": bool(rationale and len(rationale) > 10),
+        },
+    )
 
 
 def detect_favoritism(outcomes: list, lobbying_data: list) -> dict:
@@ -114,17 +121,20 @@ def detect_favoritism(outcomes: list, lobbying_data: list) -> dict:
     deviation = abs(lobbying_approval_rate - baseline_approval_rate)
     favoritism_detected = deviation > FAVORITISM_THRESHOLD
 
-    return emit_receipt("favoritism_detection", {
-        "tenant_id": TENANT_ID,
-        "total_outcomes": total,
-        "approved_count": approved,
-        "lobbying_approval_rate": lobbying_approval_rate,
-        "baseline_approval_rate": baseline_approval_rate,
-        "deviation_score": deviation,
-        "threshold": FAVORITISM_THRESHOLD,
-        "favoritism_detected": favoritism_detected,
-        "connected_entities": list(lobbyist_entities),
-    })
+    return emit_receipt(
+        "favoritism_detection",
+        {
+            "tenant_id": TENANT_ID,
+            "total_outcomes": total,
+            "approved_count": approved,
+            "lobbying_approval_rate": lobbying_approval_rate,
+            "baseline_approval_rate": baseline_approval_rate,
+            "deviation_score": deviation,
+            "threshold": FAVORITISM_THRESHOLD,
+            "favoritism_detected": favoritism_detected,
+            "connected_entities": list(lobbyist_entities),
+        },
+    )
 
 
 def score_opacity(exemptions: list) -> dict:
@@ -143,12 +153,15 @@ def score_opacity(exemptions: list) -> dict:
         opacity_receipt with score
     """
     if not exemptions:
-        return emit_receipt("opacity", {
-            "tenant_id": TENANT_ID,
-            "opacity_score": 1.0,
-            "classification": "critical",
-            "message": "No exemption data available - maximum opacity",
-        })
+        return emit_receipt(
+            "opacity",
+            {
+                "tenant_id": TENANT_ID,
+                "opacity_score": 1.0,
+                "classification": "critical",
+                "message": "No exemption data available - maximum opacity",
+            },
+        )
 
     opacity_factors = 0
     total_factors = 0
@@ -175,16 +188,25 @@ def score_opacity(exemptions: list) -> dict:
 
     opacity_score = opacity_factors / total_factors if total_factors > 0 else 1.0
 
-    classification = "critical" if opacity_score >= OPACITY_CRITICAL else \
-                     "high" if opacity_score >= 0.6 else \
-                     "medium" if opacity_score >= 0.4 else "low"
+    classification = (
+        "critical"
+        if opacity_score >= OPACITY_CRITICAL
+        else "high"
+        if opacity_score >= 0.6
+        else "medium"
+        if opacity_score >= 0.4
+        else "low"
+    )
 
-    return emit_receipt("opacity", {
-        "tenant_id": TENANT_ID,
-        "exemptions_analyzed": len(exemptions),
-        "opacity_factors": opacity_factors,
-        "total_factors": total_factors,
-        "opacity_score": opacity_score,
-        "threshold_critical": OPACITY_CRITICAL,
-        "classification": classification,
-    })
+    return emit_receipt(
+        "opacity",
+        {
+            "tenant_id": TENANT_ID,
+            "exemptions_analyzed": len(exemptions),
+            "opacity_factors": opacity_factors,
+            "total_factors": total_factors,
+            "opacity_score": opacity_score,
+            "threshold_critical": OPACITY_CRITICAL,
+            "classification": classification,
+        },
+    )

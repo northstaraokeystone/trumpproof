@@ -1,27 +1,20 @@
 """Tests for TrumpProof Cross-Domain Module"""
 
-import pytest
-
 from src.loop.cycle import (
     run_cycle,
     sense,
-    analyze,
 )
 from src.loop.harvest import (
     harvest_violations,
     rank_by_exposure,
-    propose_remediation,
 )
 from src.loop.cross_domain import (
     detect_entity_overlap,
-    trace_money_flow,
-    compute_centrality,
     flag_pif_connection,
 )
 from src.loop.pif_tracker import (
     track_pif_entity,
     aggregate_pif_exposure,
-    detect_pif_pattern,
 )
 from src.sim import run_simulation, run_scenario, SimConfig
 
@@ -99,7 +92,7 @@ class TestCrossDomain:
         }
         result = flag_pif_connection(entity)
         assert result["receipt_type"] == "pif_connection"
-        assert result["is_pif_connected"] == True
+        assert result["is_pif_connected"]
 
 
 class TestPifTracker:
@@ -110,14 +103,14 @@ class TestPifTracker:
         entity = {"name": "LIV Golf", "id": "liv-001"}
         result = track_pif_entity(entity, "golf")
         assert result["receipt_type"] == "pif_entity"
-        assert result["is_known_pif_entity"] == True
+        assert result["is_known_pif_entity"]
 
     def test_aggregate_pif_exposure(self, capture_receipts):
         """aggregate_pif_exposure should sum across domains."""
         result = aggregate_pif_exposure()
         assert result["receipt_type"] == "pif_aggregate"
         assert result["domain_count"] >= 4
-        assert result["cross_domain_verified"] == True
+        assert result["cross_domain_verified"]
 
 
 class TestSimulation:
@@ -127,17 +120,17 @@ class TestSimulation:
         """BASELINE scenario should pass."""
         config = SimConfig(n_cycles=100, scenario="BASELINE", seed=42)
         result = run_simulation(config)
-        assert result.passed == True
+        assert result.passed
 
     def test_tariff_scotus_scenario(self):
         """TARIFF_SCOTUS scenario should pass."""
         result = run_scenario("TARIFF_SCOTUS")
-        assert result.passed == True
+        assert result.passed
 
     def test_gulf_returns_scenario(self):
         """GULF_RETURNS scenario should handle zero returns."""
         result = run_scenario("GULF_RETURNS")
-        assert result.passed == True
+        assert result.passed
 
     def test_cross_domain_pif_scenario(self):
         """CROSS_DOMAIN_PIF should identify 4+ domains."""

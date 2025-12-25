@@ -66,10 +66,19 @@ class TestEmitReceipt:
         result = emit_receipt("test", {})
         assert result["tenant_id"] == "trumpproof"
 
-    def test_emit_receipt_outputs_json(self, capture_receipts):
+    def test_emit_receipt_outputs_json(self):
         """emit_receipt should output valid JSON to stdout."""
-        emit_receipt("test", {"data": "value"})
-        output = capture_receipts.getvalue()
+        import sys
+        import io
+
+        old_stdout = sys.stdout
+        sys.stdout = captured = io.StringIO()
+        try:
+            emit_receipt("test", {"data": "value"})
+            output = captured.getvalue()
+        finally:
+            sys.stdout = old_stdout
+
         parsed = json.loads(output.strip())
         assert parsed["receipt_type"] == "test"
 

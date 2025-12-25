@@ -62,21 +62,21 @@ def track_pif_entity(entity: dict, domain: str) -> dict:
     known_connection = None
     for known_entity, details in PIF_CONNECTED_ENTITIES.items():
         if known_entity in entity_name:
-            known_connection = {
-                "known_entity": known_entity,
-                **details
-            }
+            known_connection = {"known_entity": known_entity, **details}
             break
 
-    return emit_receipt("pif_entity", {
-        "tenant_id": TENANT_ID,
-        "entity_id": entity.get("id", "unknown"),
-        "entity_name": entity.get("name", "unknown"),
-        "domain": domain,
-        "known_connection": known_connection,
-        "is_known_pif_entity": known_connection is not None,
-        "pif_investment": known_connection["investment"] if known_connection else 0,
-    })
+    return emit_receipt(
+        "pif_entity",
+        {
+            "tenant_id": TENANT_ID,
+            "entity_id": entity.get("id", "unknown"),
+            "entity_name": entity.get("name", "unknown"),
+            "domain": domain,
+            "known_connection": known_connection,
+            "is_known_pif_entity": known_connection is not None,
+            "pif_investment": known_connection["investment"] if known_connection else 0,
+        },
+    )
 
 
 def aggregate_pif_exposure() -> dict:
@@ -114,19 +114,27 @@ def aggregate_pif_exposure() -> dict:
     }
 
     total_direct = sum(d.get("direct_investment", 0) for d in by_domain.values())
-    domains_with_exposure = len([d for d in by_domain.values()
-                                  if d.get("direct_investment", 0) > 0 or
-                                  d.get("project_value", 0) > 0 or
-                                  d.get("cfius_exposure")])
+    domains_with_exposure = len(
+        [
+            d
+            for d in by_domain.values()
+            if d.get("direct_investment", 0) > 0
+            or d.get("project_value", 0) > 0
+            or d.get("cfius_exposure")
+        ]
+    )
 
-    return emit_receipt("pif_aggregate", {
-        "tenant_id": TENANT_ID,
-        "by_domain": by_domain,
-        "domain_count": domains_with_exposure,
-        "total_direct_investment": total_direct,
-        "total_exposure": PIF_TOTAL_EXPOSURE,
-        "cross_domain_verified": domains_with_exposure >= 4,
-    })
+    return emit_receipt(
+        "pif_aggregate",
+        {
+            "tenant_id": TENANT_ID,
+            "by_domain": by_domain,
+            "domain_count": domains_with_exposure,
+            "total_direct_investment": total_direct,
+            "total_exposure": PIF_TOTAL_EXPOSURE,
+            "cross_domain_verified": domains_with_exposure >= 4,
+        },
+    )
 
 
 def detect_pif_pattern(receipts: list) -> dict:
@@ -145,8 +153,10 @@ def detect_pif_pattern(receipts: list) -> dict:
     for r in receipts:
         # Check for PIF-related content
         r_str = str(r).lower()
-        if "pif" in r_str or "saudi" in r_str or any(
-            entity in r_str for entity in PIF_CONNECTED_ENTITIES
+        if (
+            "pif" in r_str
+            or "saudi" in r_str
+            or any(entity in r_str for entity in PIF_CONNECTED_ENTITIES)
         ):
             pif_receipts.append(r)
 
@@ -164,33 +174,39 @@ def detect_pif_pattern(receipts: list) -> dict:
 
     for entity, domains in entity_domains.items():
         if len(domains) >= 2:
-            patterns.append({
-                "type": "cross_domain_pif_entity",
-                "entity": entity,
-                "domains": list(domains),
-                "domain_count": len(domains),
-            })
+            patterns.append(
+                {
+                    "type": "cross_domain_pif_entity",
+                    "entity": entity,
+                    "domains": list(domains),
+                    "domain_count": len(domains),
+                }
+            )
 
     # Pattern: Money flow through PIF ecosystem
     total_pif_flow = sum(
-        r.get("amount", 0) or r.get("pif_investment", 0) or 0
-        for r in pif_receipts
+        r.get("amount", 0) or r.get("pif_investment", 0) or 0 for r in pif_receipts
     )
     if total_pif_flow > 1_000_000_000:  # $1B+
-        patterns.append({
-            "type": "significant_pif_flow",
-            "total_value": total_pif_flow,
-            "threshold": 1_000_000_000,
-        })
+        patterns.append(
+            {
+                "type": "significant_pif_flow",
+                "total_value": total_pif_flow,
+                "threshold": 1_000_000_000,
+            }
+        )
 
-    return emit_receipt("pif_pattern", {
-        "tenant_id": TENANT_ID,
-        "receipts_analyzed": len(receipts),
-        "pif_related_receipts": len(pif_receipts),
-        "patterns_detected": len(patterns),
-        "patterns": patterns,
-        "central_node_confirmed": len(patterns) >= 2,
-    })
+    return emit_receipt(
+        "pif_pattern",
+        {
+            "tenant_id": TENANT_ID,
+            "receipts_analyzed": len(receipts),
+            "pif_related_receipts": len(pif_receipts),
+            "patterns_detected": len(patterns),
+            "patterns": patterns,
+            "central_node_confirmed": len(patterns) >= 2,
+        },
+    )
 
 
 def infer_domain(receipt_type: str) -> str:
@@ -199,7 +215,9 @@ def infer_domain(receipt_type: str) -> str:
         return "tariff"
     elif "detention" in receipt_type or "border" in receipt_type:
         return "border"
-    elif "swf" in receipt_type or "fara" in receipt_type or "investment" in receipt_type:
+    elif (
+        "swf" in receipt_type or "fara" in receipt_type or "investment" in receipt_type
+    ):
         return "gulf"
     elif "golf" in receipt_type or "liv" in receipt_type or "emolument" in receipt_type:
         return "golf"

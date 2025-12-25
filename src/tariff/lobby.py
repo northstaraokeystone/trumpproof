@@ -24,15 +24,18 @@ def ingest_lda_filings(filings: list) -> dict:
         for issue in f.get("issues", []):
             issues.add(issue)
 
-    return emit_receipt("lda_ingest", {
-        "tenant_id": TENANT_ID,
-        "filing_count": len(filings),
-        "total_spend": total_spend,
-        "unique_clients": len(clients),
-        "unique_lobbyists": len(lobbyists),
-        "tariff_related_issues": [i for i in issues if "tariff" in i.lower()],
-        "data_hash": dual_hash(str(filings)),
-    })
+    return emit_receipt(
+        "lda_ingest",
+        {
+            "tenant_id": TENANT_ID,
+            "filing_count": len(filings),
+            "total_spend": total_spend,
+            "unique_clients": len(clients),
+            "unique_lobbyists": len(lobbyists),
+            "tariff_related_issues": [i for i in issues if "tariff" in i.lower()],
+            "data_hash": dual_hash(str(filings)),
+        },
+    )
 
 
 def cross_reference(exemptions: list, lda_filings: list) -> dict:
@@ -65,22 +68,27 @@ def cross_reference(exemptions: list, lda_filings: list) -> dict:
     for ex in exemptions:
         applicant = ex.get("applicant", "").lower()
         if applicant in client_to_lobbyist:
-            matches.append({
-                "exemption_id": ex.get("id", "unknown"),
-                "applicant": applicant,
-                "outcome": ex.get("outcome", "unknown"),
-                "lobbyists": client_to_lobbyist[applicant],
-                "total_lobbying_spend": client_to_spend[applicant],
-            })
+            matches.append(
+                {
+                    "exemption_id": ex.get("id", "unknown"),
+                    "applicant": applicant,
+                    "outcome": ex.get("outcome", "unknown"),
+                    "lobbyists": client_to_lobbyist[applicant],
+                    "total_lobbying_spend": client_to_spend[applicant],
+                }
+            )
 
-    return emit_receipt("exemption_lobbying_cross_ref", {
-        "tenant_id": TENANT_ID,
-        "exemptions_analyzed": len(exemptions),
-        "lda_filings_analyzed": len(lda_filings),
-        "matches_found": len(matches),
-        "match_rate": len(matches) / len(exemptions) if exemptions else 0,
-        "matches": matches,
-    })
+    return emit_receipt(
+        "exemption_lobbying_cross_ref",
+        {
+            "tenant_id": TENANT_ID,
+            "exemptions_analyzed": len(exemptions),
+            "lda_filings_analyzed": len(lda_filings),
+            "matches_found": len(matches),
+            "match_rate": len(matches) / len(exemptions) if exemptions else 0,
+            "matches": matches,
+        },
+    )
 
 
 def detect_pattern(cross_refs: list) -> dict:
@@ -111,17 +119,23 @@ def detect_pattern(cross_refs: list) -> dict:
         elif outcome == "denied":
             denied_spend.append(spend)
 
-    avg_approved_spend = sum(approved_spend) / len(approved_spend) if approved_spend else 0
+    avg_approved_spend = (
+        sum(approved_spend) / len(approved_spend) if approved_spend else 0
+    )
     avg_denied_spend = sum(denied_spend) / len(denied_spend) if denied_spend else 0
 
     if avg_approved_spend > avg_denied_spend * 2:
-        patterns.append({
-            "type": "spend_correlation",
-            "description": "Approved exemptions average 2x+ lobbying spend vs denied",
-            "avg_approved_spend": avg_approved_spend,
-            "avg_denied_spend": avg_denied_spend,
-            "ratio": avg_approved_spend / avg_denied_spend if avg_denied_spend else float('inf'),
-        })
+        patterns.append(
+            {
+                "type": "spend_correlation",
+                "description": "Approved exemptions average 2x+ lobbying spend vs denied",
+                "avg_approved_spend": avg_approved_spend,
+                "avg_denied_spend": avg_denied_spend,
+                "ratio": avg_approved_spend / avg_denied_spend
+                if avg_denied_spend
+                else float("inf"),
+            }
+        )
 
     # Detect repeat approvals
     entity_approvals = {}
@@ -132,17 +146,26 @@ def detect_pattern(cross_refs: list) -> dict:
 
     repeat_approvals = {k: v for k, v in entity_approvals.items() if v > 1}
     if repeat_approvals:
-        patterns.append({
-            "type": "repeat_approvals",
-            "description": "Entities receiving multiple exemption approvals",
-            "entities": repeat_approvals,
-            "total_repeat_count": sum(repeat_approvals.values()),
-        })
+        patterns.append(
+            {
+                "type": "repeat_approvals",
+                "description": "Entities receiving multiple exemption approvals",
+                "entities": repeat_approvals,
+                "total_repeat_count": sum(repeat_approvals.values()),
+            }
+        )
 
-    return emit_receipt("lobbying_pattern", {
-        "tenant_id": TENANT_ID,
-        "cross_refs_analyzed": len(cross_refs),
-        "patterns_detected": len(patterns),
-        "patterns": patterns,
-        "risk_level": "high" if len(patterns) >= 2 else "medium" if patterns else "low",
-    })
+    return emit_receipt(
+        "lobbying_pattern",
+        {
+            "tenant_id": TENANT_ID,
+            "cross_refs_analyzed": len(cross_refs),
+            "patterns_detected": len(patterns),
+            "patterns": patterns,
+            "risk_level": "high"
+            if len(patterns) >= 2
+            else "medium"
+            if patterns
+            else "low",
+        },
+    )

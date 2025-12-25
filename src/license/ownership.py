@@ -34,13 +34,15 @@ def resolve_ownership(entity: dict, depth: int = 5) -> dict:
             break
 
         owner = current.get("parent_entity")
-        ownership_chain.append({
-            "level": i,
-            "entity_name": current.get("name", "unknown"),
-            "entity_type": current.get("type", "unknown"),
-            "jurisdiction": current.get("jurisdiction", "unknown"),
-            "ownership_percentage": current.get("ownership_percentage", 100),
-        })
+        ownership_chain.append(
+            {
+                "level": i,
+                "entity_name": current.get("name", "unknown"),
+                "entity_type": current.get("type", "unknown"),
+                "jurisdiction": current.get("jurisdiction", "unknown"),
+                "ownership_percentage": current.get("ownership_percentage", 100),
+            }
+        )
 
         if owner:
             current = owner
@@ -50,20 +52,25 @@ def resolve_ownership(entity: dict, depth: int = 5) -> dict:
 
     # Check for beneficial owner identification
     ultimate_owner = ownership_chain[-1] if ownership_chain else None
-    owner_identified = ultimate_owner and ultimate_owner.get("entity_type") == "individual"
+    owner_identified = (
+        ultimate_owner and ultimate_owner.get("entity_type") == "individual"
+    )
 
-    return emit_receipt("ownership_resolution", {
-        "tenant_id": TENANT_ID,
-        "entity_id": entity.get("id", dual_hash(str(entity))[:12]),
-        "entity_name": entity.get("name", "unknown"),
-        "ownership_chain": ownership_chain,
-        "resolution_depth": resolved_depth,
-        "max_depth": depth,
-        "ultimate_owner": ultimate_owner,
-        "owner_identified": owner_identified,
-        "cta_exempt": True,  # All US entities now exempt per March 2025 rule
-        "should_be_disclosed": True,  # Track what should be disclosed
-    })
+    return emit_receipt(
+        "ownership_resolution",
+        {
+            "tenant_id": TENANT_ID,
+            "entity_id": entity.get("id", dual_hash(str(entity))[:12]),
+            "entity_name": entity.get("name", "unknown"),
+            "ownership_chain": ownership_chain,
+            "resolution_depth": resolved_depth,
+            "max_depth": depth,
+            "ultimate_owner": ultimate_owner,
+            "owner_identified": owner_identified,
+            "cta_exempt": True,  # All US entities now exempt per March 2025 rule
+            "should_be_disclosed": True,  # Track what should be disclosed
+        },
+    )
 
 
 def track_shell_company(entity: dict, jurisdiction: str) -> dict:
@@ -79,8 +86,15 @@ def track_shell_company(entity: dict, jurisdiction: str) -> dict:
     # Shell company indicators
     indicators = []
 
-    if jurisdiction.lower() in ["delaware", "nevada", "wyoming", "british virgin islands",
-                                 "cayman islands", "panama", "luxembourg"]:
+    if jurisdiction.lower() in [
+        "delaware",
+        "nevada",
+        "wyoming",
+        "british virgin islands",
+        "cayman islands",
+        "panama",
+        "luxembourg",
+    ]:
         indicators.append("favorable_jurisdiction")
 
     if entity.get("no_employees", False) or entity.get("employees", 0) == 0:
@@ -97,16 +111,19 @@ def track_shell_company(entity: dict, jurisdiction: str) -> dict:
 
     shell_score = len(indicators) / 5  # 5 possible indicators
 
-    return emit_receipt("shell_company", {
-        "tenant_id": TENANT_ID,
-        "entity_id": entity.get("id", dual_hash(str(entity))[:12]),
-        "entity_name": entity.get("name", "unknown"),
-        "jurisdiction": jurisdiction,
-        "indicators": indicators,
-        "indicator_count": len(indicators),
-        "shell_score": shell_score,
-        "likely_shell": shell_score >= 0.6,
-    })
+    return emit_receipt(
+        "shell_company",
+        {
+            "tenant_id": TENANT_ID,
+            "entity_id": entity.get("id", dual_hash(str(entity))[:12]),
+            "entity_name": entity.get("name", "unknown"),
+            "jurisdiction": jurisdiction,
+            "indicators": indicators,
+            "indicator_count": len(indicators),
+            "shell_score": shell_score,
+            "likely_shell": shell_score >= 0.6,
+        },
+    )
 
 
 def flag_opacity(entity_id: str, unresolved_layers: int) -> dict:
@@ -122,17 +139,26 @@ def flag_opacity(entity_id: str, unresolved_layers: int) -> dict:
     # Opacity score based on unresolved layers
     opacity_score = min(1.0, unresolved_layers / 5)  # 5+ layers = max opacity
 
-    severity = "critical" if opacity_score >= OPACITY_CRITICAL else \
-               "high" if opacity_score >= 0.6 else \
-               "medium" if opacity_score >= 0.4 else "low"
+    severity = (
+        "critical"
+        if opacity_score >= OPACITY_CRITICAL
+        else "high"
+        if opacity_score >= 0.6
+        else "medium"
+        if opacity_score >= 0.4
+        else "low"
+    )
 
-    return emit_receipt("opacity_flag", {
-        "tenant_id": TENANT_ID,
-        "entity_id": entity_id,
-        "unresolved_layers": unresolved_layers,
-        "opacity_score": opacity_score,
-        "severity": severity,
-        "threshold_critical": OPACITY_CRITICAL,
-        "cta_would_require_disclosure": True,
-        "cta_status": "gutted_march_2025",
-    })
+    return emit_receipt(
+        "opacity_flag",
+        {
+            "tenant_id": TENANT_ID,
+            "entity_id": entity_id,
+            "unresolved_layers": unresolved_layers,
+            "opacity_score": opacity_score,
+            "severity": severity,
+            "threshold_critical": OPACITY_CRITICAL,
+            "cta_would_require_disclosure": True,
+            "cta_status": "gutted_march_2025",
+        },
+    )

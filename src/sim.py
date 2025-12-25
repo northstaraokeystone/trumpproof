@@ -17,11 +17,10 @@ import random
 import io
 import sys
 
-from .core import emit_receipt, dual_hash, StopRule, TENANT_ID
+from .core import StopRule, TENANT_ID
 from .constants import (
     TARIFF_FY2025_REVENUE,
     TARIFF_REFUND_LIABILITY,
-    BORDER_FOUR_YEAR_ALLOCATION,
     GULF_PIF_INVESTMENT,
     GOLF_LIV_PIF_INVESTMENT,
     PIF_TOTAL_EXPOSURE,
@@ -31,8 +30,11 @@ from .constants import (
 @dataclass
 class SimConfig:
     """Simulation configuration."""
+
     n_cycles: int = 1000
-    modules: list = field(default_factory=lambda: ["tariff", "border", "gulf", "golf", "license"])
+    modules: list = field(
+        default_factory=lambda: ["tariff", "border", "gulf", "golf", "license"]
+    )
     scenario: str = "BASELINE"
     inject_events: list = field(default_factory=list)
     seed: Optional[int] = None
@@ -41,6 +43,7 @@ class SimConfig:
 @dataclass
 class SimResult:
     """Simulation result."""
+
     scenario: str
     n_cycles: int
     receipts: list
@@ -74,9 +77,7 @@ def run_simulation(config: SimConfig) -> SimResult:
 
     try:
         for cycle in range(config.n_cycles):
-            cycle_receipts, cycle_violations, cycle_anomalies = run_cycle(
-                config, cycle
-            )
+            cycle_receipts, cycle_violations, cycle_anomalies = run_cycle(config, cycle)
             receipts.extend(cycle_receipts)
             violations.extend(cycle_violations)
             anomalies.extend(cycle_anomalies)
@@ -92,7 +93,9 @@ def run_simulation(config: SimConfig) -> SimResult:
                 pif_domains.add(domain)
 
     # Check pass criteria based on scenario
-    passed, message = check_pass_criteria(config.scenario, receipts, violations, pif_domains)
+    passed, message = check_pass_criteria(
+        config.scenario, receipts, violations, pif_domains
+    )
 
     return SimResult(
         scenario=config.scenario,
@@ -130,12 +133,14 @@ def run_cycle(config: SimConfig, cycle_num: int) -> tuple:
                     violations.append(r)
 
         except StopRule as e:
-            violations.append({
-                "type": "stoprule",
-                "module": module,
-                "cycle": cycle_num,
-                "error": str(e),
-            })
+            violations.append(
+                {
+                    "type": "stoprule",
+                    "module": module,
+                    "cycle": cycle_num,
+                    "error": str(e),
+                }
+            )
 
     return receipts, violations, anomalies
 
@@ -168,31 +173,51 @@ def simulate_tariff(config: SimConfig, cycle_num: int) -> list:
 
     # Simulate revenue ingest
     revenue = TARIFF_FY2025_REVENUE / config.n_cycles + random.gauss(0, 1e9)
-    receipts.append({
-        "receipt_type": "tariff_ingest",
-        "tenant_id": TENANT_ID,
-        "revenue_amount": max(0, revenue),
-        "cycle": cycle_num,
-    })
+    receipts.append(
+        {
+            "receipt_type": "tariff_ingest",
+            "tenant_id": TENANT_ID,
+            "revenue_amount": max(0, revenue),
+            "cycle": cycle_num,
+        }
+    )
+
+    # PIF exposure via CFIUS (EA acquisition subject to tariff policy)
+    if random.random() < 0.2:  # 20% of cycles
+        receipts.append(
+            {
+                "receipt_type": "cfius_review",
+                "tenant_id": TENANT_ID,
+                "entity": "EA (Electronic Arts)",
+                "pif_connection": True,
+                "is_pif_connected": True,
+                "domain": "tariff",
+                "cycle": cycle_num,
+            }
+        )
 
     # Simulate exemption if SCOTUS scenario
     if config.scenario == "TARIFF_SCOTUS":
         approval_rate = 0.6 + random.gauss(0, 0.1)
-        receipts.append({
-            "receipt_type": "exemption_outcome",
-            "tenant_id": TENANT_ID,
-            "outcome": "approved" if random.random() < approval_rate else "denied",
-            "cycle": cycle_num,
-        })
+        receipts.append(
+            {
+                "receipt_type": "exemption_outcome",
+                "tenant_id": TENANT_ID,
+                "outcome": "approved" if random.random() < approval_rate else "denied",
+                "cycle": cycle_num,
+            }
+        )
 
         # Refund liability
-        receipts.append({
-            "receipt_type": "refund_liability",
-            "tenant_id": TENANT_ID,
-            "liability": TARIFF_REFUND_LIABILITY * random.uniform(0.3, 1.0),
-            "ieepa_status": random.choice(["pending", "affirmed", "struck"]),
-            "cycle": cycle_num,
-        })
+        receipts.append(
+            {
+                "receipt_type": "refund_liability",
+                "tenant_id": TENANT_ID,
+                "liability": TARIFF_REFUND_LIABILITY * random.uniform(0.3, 1.0),
+                "ieepa_status": random.choice(["pending", "affirmed", "struck"]),
+                "cycle": cycle_num,
+            }
+        )
 
     return receipts
 
@@ -203,34 +228,40 @@ def simulate_border(config: SimConfig, cycle_num: int) -> list:
 
     # Simulate detention
     detainee_count = random.randint(50, 200)
-    receipts.append({
-        "receipt_type": "detention",
-        "tenant_id": TENANT_ID,
-        "detainee_count": detainee_count,
-        "cycle": cycle_num,
-    })
+    receipts.append(
+        {
+            "receipt_type": "detention",
+            "tenant_id": TENANT_ID,
+            "detainee_count": detainee_count,
+            "cycle": cycle_num,
+        }
+    )
 
     # BORDER_ACCOUNTABILITY scenario
     if config.scenario == "BORDER_ACCOUNTABILITY":
         # Inject death event
         if "death_event" in config.inject_events or random.random() < 0.02:
-            receipts.append({
-                "receipt_type": "death_rate",
-                "tenant_id": TENANT_ID,
-                "deaths": random.randint(1, 3),
-                "violation": True,
-                "cycle": cycle_num,
-            })
+            receipts.append(
+                {
+                    "receipt_type": "death_rate",
+                    "tenant_id": TENANT_ID,
+                    "deaths": random.randint(1, 3),
+                    "violation": True,
+                    "cycle": cycle_num,
+                }
+            )
 
         # Inject citizen detention
         if "citizen_detention" in config.inject_events or random.random() < 0.05:
-            receipts.append({
-                "receipt_type": "citizen_flag",
-                "tenant_id": TENANT_ID,
-                "is_citizen": True,
-                "violation": True,
-                "cycle": cycle_num,
-            })
+            receipts.append(
+                {
+                    "receipt_type": "citizen_flag",
+                    "tenant_id": TENANT_ID,
+                    "is_citizen": True,
+                    "violation": True,
+                    "cycle": cycle_num,
+                }
+            )
 
     return receipts
 
@@ -240,15 +271,17 @@ def simulate_gulf(config: SimConfig, cycle_num: int) -> list:
     receipts = []
 
     # SWF investment
-    receipts.append({
-        "receipt_type": "swf_investment",
-        "tenant_id": TENANT_ID,
-        "amount": GULF_PIF_INVESTMENT,
-        "fund_name": "Saudi PIF",
-        "is_pif_connected": True,
-        "domain": "gulf",
-        "cycle": cycle_num,
-    })
+    receipts.append(
+        {
+            "receipt_type": "swf_investment",
+            "tenant_id": TENANT_ID,
+            "amount": GULF_PIF_INVESTMENT,
+            "fund_name": "Saudi PIF",
+            "is_pif_connected": True,
+            "domain": "gulf",
+            "cycle": cycle_num,
+        }
+    )
 
     # GULF_RETURNS scenario
     if config.scenario == "GULF_RETURNS":
@@ -256,22 +289,26 @@ def simulate_gulf(config: SimConfig, cycle_num: int) -> list:
         returns_pct = 0 if random.random() < 0.7 else random.gauss(5, 3)
         fees = random.uniform(100_000_000, 200_000_000)
 
-        receipts.append({
-            "receipt_type": "investment_returns",
-            "tenant_id": TENANT_ID,
-            "return_percentage": returns_pct,
-            "is_zero_return": returns_pct == 0,
-            "cycle": cycle_num,
-        })
+        receipts.append(
+            {
+                "receipt_type": "investment_returns",
+                "tenant_id": TENANT_ID,
+                "return_percentage": returns_pct,
+                "is_zero_return": returns_pct == 0,
+                "cycle": cycle_num,
+            }
+        )
 
-        receipts.append({
-            "receipt_type": "fee_ratio",
-            "tenant_id": TENANT_ID,
-            "fees_collected": fees,
-            "returns_generated": returns_pct * GULF_PIF_INVESTMENT / 100,
-            "excessive": returns_pct == 0,
-            "cycle": cycle_num,
-        })
+        receipts.append(
+            {
+                "receipt_type": "fee_ratio",
+                "tenant_id": TENANT_ID,
+                "fees_collected": fees,
+                "returns_generated": returns_pct * GULF_PIF_INVESTMENT / 100,
+                "excessive": returns_pct == 0,
+                "cycle": cycle_num,
+            }
+        )
 
     return receipts
 
@@ -282,24 +319,28 @@ def simulate_golf(config: SimConfig, cycle_num: int) -> list:
 
     # LIV event tracking
     if random.random() < 0.3:  # 30% chance of LIV event
-        receipts.append({
-            "receipt_type": "liv_event",
-            "tenant_id": TENANT_ID,
-            "pif_funding": GOLF_LIV_PIF_INVESTMENT / 100,
-            "is_trump_property": random.random() < 0.5,
-            "is_pif_connected": True,
-            "domain": "golf",
-            "cycle": cycle_num,
-        })
+        receipts.append(
+            {
+                "receipt_type": "liv_event",
+                "tenant_id": TENANT_ID,
+                "pif_funding": GOLF_LIV_PIF_INVESTMENT / 100,
+                "is_trump_property": random.random() < 0.5,
+                "is_pif_connected": True,
+                "domain": "golf",
+                "cycle": cycle_num,
+            }
+        )
 
     # Emoluments
-    receipts.append({
-        "receipt_type": "emolument_assessment",
-        "tenant_id": TENANT_ID,
-        "amount": random.uniform(10000, 100000),
-        "is_emolument": random.random() < 0.4,
-        "cycle": cycle_num,
-    })
+    receipts.append(
+        {
+            "receipt_type": "emolument_assessment",
+            "tenant_id": TENANT_ID,
+            "amount": random.uniform(10000, 100000),
+            "is_emolument": random.random() < 0.4,
+            "cycle": cycle_num,
+        }
+    )
 
     return receipts
 
@@ -309,22 +350,26 @@ def simulate_license(config: SimConfig, cycle_num: int) -> list:
     receipts = []
 
     # License registration
-    receipts.append({
-        "receipt_type": "license_registration",
-        "tenant_id": TENANT_ID,
-        "project_value": random.uniform(100_000_000, 1_000_000_000),
-        "cycle": cycle_num,
-    })
+    receipts.append(
+        {
+            "receipt_type": "license_registration",
+            "tenant_id": TENANT_ID,
+            "project_value": random.uniform(100_000_000, 1_000_000_000),
+            "cycle": cycle_num,
+        }
+    )
 
     # PIF cross-reference
     if random.random() < 0.5:
-        receipts.append({
-            "receipt_type": "pif_cross_reference",
-            "tenant_id": TENANT_ID,
-            "is_pif_connected": True,
-            "domain": "license",
-            "cycle": cycle_num,
-        })
+        receipts.append(
+            {
+                "receipt_type": "pif_cross_reference",
+                "tenant_id": TENANT_ID,
+                "is_pif_connected": True,
+                "domain": "license",
+                "cycle": cycle_num,
+            }
+        )
 
     return receipts
 
@@ -332,12 +377,12 @@ def simulate_license(config: SimConfig, cycle_num: int) -> list:
 def is_violation(receipt: dict) -> bool:
     """Check if receipt represents a violation."""
     return (
-        receipt.get("violation") or
-        receipt.get("is_violation") or
-        receipt.get("exceeds_threshold") or
-        receipt.get("excessive") or
-        receipt.get("favoritism_detected") or
-        receipt.get("is_emolument")
+        receipt.get("violation")
+        or receipt.get("is_violation")
+        or receipt.get("exceeds_threshold")
+        or receipt.get("excessive")
+        or receipt.get("favoritism_detected")
+        or receipt.get("is_emolument")
     )
 
 
@@ -357,8 +402,9 @@ def infer_domain(receipt_type: str) -> str:
     return "unknown"
 
 
-def check_pass_criteria(scenario: str, receipts: list, violations: list,
-                         pif_domains: set) -> tuple:
+def check_pass_criteria(
+    scenario: str, receipts: list, violations: list, pif_domains: set
+) -> tuple:
     """Check if scenario passes its criteria.
 
     Returns:
@@ -373,18 +419,27 @@ def check_pass_criteria(scenario: str, receipts: list, violations: list,
 
     elif scenario == "TARIFF_SCOTUS":
         # Refund liability computed, exemption tracking functional
-        liability_receipts = [r for r in receipts if r.get("receipt_type") == "refund_liability"]
+        liability_receipts = [
+            r for r in receipts if r.get("receipt_type") == "refund_liability"
+        ]
         if not liability_receipts:
             return False, "FAIL: No refund liability computed"
         return True, "PASS: Refund liability computed, exemption tracking functional"
 
     elif scenario == "BORDER_ACCOUNTABILITY":
         # Per-detainee tracking, citizenship verification
-        detention_receipts = [r for r in receipts if "detention" in r.get("receipt_type", "")]
-        citizen_receipts = [r for r in receipts if "citizen" in r.get("receipt_type", "")]
+        detention_receipts = [
+            r for r in receipts if "detention" in r.get("receipt_type", "")
+        ]
+        citizen_receipts = [
+            r for r in receipts if "citizen" in r.get("receipt_type", "")
+        ]
         if not detention_receipts:
             return False, "FAIL: No detention tracking"
-        return True, f"PASS: Detention tracking ({len(detention_receipts)}), citizenship verification ({len(citizen_receipts)})"
+        return (
+            True,
+            f"PASS: Detention tracking ({len(detention_receipts)}), citizenship verification ({len(citizen_receipts)})",
+        )
 
     elif scenario == "GULF_RETURNS":
         # Fee-to-returns ratio computed (handles infinity)
@@ -392,7 +447,9 @@ def check_pass_criteria(scenario: str, receipts: list, violations: list,
         if not fee_receipts:
             return False, "FAIL: No fee ratio computed"
         # Check infinity handling
-        zero_return = any(r.get("is_zero_return") or r.get("returns_generated") == 0 for r in receipts)
+        zero_return = any(
+            r.get("is_zero_return") or r.get("returns_generated") == 0 for r in receipts
+        )
         return True, f"PASS: Fee ratio computed, zero-return handled: {zero_return}"
 
     elif scenario == "CROSS_DOMAIN_PIF":
@@ -420,14 +477,18 @@ def run_scenario(scenario_name: str) -> SimResult:
     """
     configs = {
         "BASELINE": SimConfig(n_cycles=1000, scenario="BASELINE"),
-        "TARIFF_SCOTUS": SimConfig(n_cycles=500, modules=["tariff"], scenario="TARIFF_SCOTUS"),
+        "TARIFF_SCOTUS": SimConfig(
+            n_cycles=500, modules=["tariff"], scenario="TARIFF_SCOTUS"
+        ),
         "BORDER_ACCOUNTABILITY": SimConfig(
             n_cycles=500,
             modules=["border"],
             scenario="BORDER_ACCOUNTABILITY",
-            inject_events=["death_event", "citizen_detention"]
+            inject_events=["death_event", "citizen_detention"],
         ),
-        "GULF_RETURNS": SimConfig(n_cycles=500, modules=["gulf"], scenario="GULF_RETURNS"),
+        "GULF_RETURNS": SimConfig(
+            n_cycles=500, modules=["gulf"], scenario="GULF_RETURNS"
+        ),
         "CROSS_DOMAIN_PIF": SimConfig(n_cycles=1000, scenario="CROSS_DOMAIN_PIF"),
         "GÖDEL": SimConfig(n_cycles=100, scenario="GÖDEL"),
     }
