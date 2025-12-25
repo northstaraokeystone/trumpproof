@@ -1,0 +1,39 @@
+{
+  "glyph_type": "anchor",
+  "id": "trumpproof-v1.0.0",
+  "ts": "2025-12-25T00:00:00Z",
+  "purpose": "TrumpProof v1.0 Receipts-Native Government Accountability Infrastructure",
+  "tenant_id": "trumpproof",
+  "version": "1.0.0",
+  "modules": [
+    "tariff",
+    "border",
+    "gulf",
+    "golf",
+    "license",
+    "loop"
+  ],
+  "exposure": {
+    "total": 371000000000,
+    "tariff": 195000000000,
+    "border": 170100000000,
+    "gulf": 5400000000,
+    "golf": 354000000,
+    "license": 36000000
+  },
+  "pif_exposure": {
+    "total": 6580000000,
+    "gulf": 2000000000,
+    "golf": 4580000000
+  },
+  "scenarios": [
+    "BASELINE",
+    "TARIFF_SCOTUS",
+    "BORDER_ACCOUNTABILITY",
+    "GULF_RETURNS",
+    "CROSS_DOMAIN_PIF",
+    "GÖDEL"
+  ],
+  "hash_strategy": "SHA256:BLAKE3",
+  "status": "ACTIVE"
+}

@@ -1,0 +1,158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TrumpProof Ledger Schema",
+  "description": "Schema for TrumpProof receipts ledger",
+  "version": "1.0.0",
+  "tenant_id": "trumpproof",
+  "hash_strategy": {
+    "algorithm": ["SHA256", "BLAKE3"],
+    "format": "SHA256:BLAKE3",
+    "description": "Dual-hash every piece of data per CLAUDEME §8"
+  },
+  "receipt_base": {
+    "type": "object",
+    "required": ["receipt_type", "ts", "tenant_id", "payload_hash"],
+    "properties": {
+      "receipt_type": {
+        "type": "string",
+        "description": "Type of receipt"
+      },
+      "ts": {
+        "type": "string",
+        "format": "date-time",
+        "description": "ISO8601 timestamp"
+      },
+      "tenant_id": {
+        "type": "string",
+        "const": "trumpproof",
+        "description": "Tenant identifier"
+      },
+      "payload_hash": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}:[a-f0-9]{64}$",
+        "description": "SHA256:BLAKE3 hash of payload"
+      }
+    }
+  },
+  "receipt_types": {
+    "tariff": [
+      "tariff_ingest",
+      "tariff_allocation",
+      "tariff_verification",
+      "tariff_trend",
+      "exemption_application",
+      "exemption_outcome",
+      "favoritism_detection",
+      "opacity",
+      "refund_liability",
+      "refund_claimant",
+      "scotus_scenario",
+      "lda_ingest",
+      "exemption_lobbying_cross_ref",
+      "lobbying_pattern"
+    ],
+    "border": [
+      "detention",
+      "detention_duration",
+      "facility_monitor",
+      "detention_cost",
+      "contractor_registration",
+      "contract_tracking",
+      "contractor_outcome",
+      "donation_contract_cross_ref",
+      "citizenship_verification",
+      "citizen_flag",
+      "wrongful_detention_tracking",
+      "condition_assessment",
+      "violation_tracking",
+      "death_rate"
+    ],
+    "gulf": [
+      "swf_investment",
+      "capital_deployment",
+      "investment_terms",
+      "fara_assessment",
+      "fara_check",
+      "fara_violation",
+      "investment_returns",
+      "benchmark_comparison",
+      "returns_verification",
+      "management_fee",
+      "fee_ratio",
+      "excessive_fee_flag"
+    ],
+    "golf": [
+      "payment",
+      "source_classification",
+      "country_aggregate",
+      "golf_event",
+      "liv_event",
+      "venue_revenue",
+      "sanctions_screening",
+      "transaction_screening",
+      "sdn_flag",
+      "emolument_assessment",
+      "government_tracking",
+      "emoluments_exposure"
+    ],
+    "license": [
+      "ownership_resolution",
+      "shell_company",
+      "opacity_flag",
+      "license_registration",
+      "license_fee_payment",
+      "license_disclosure_verification",
+      "partner_registration",
+      "government_ties",
+      "pif_cross_reference"
+    ],
+    "loop": [
+      "loop_cycle",
+      "harvest",
+      "remediation_proposal",
+      "entity_overlap",
+      "money_flow",
+      "centrality",
+      "pif_connection",
+      "pif_entity",
+      "pif_aggregate",
+      "pif_pattern"
+    ],
+    "system": [
+      "anomaly",
+      "test"
+    ]
+  },
+  "modules": {
+    "tariff": {
+      "operator": "Howard Lutnick",
+      "exposure": 195000000000,
+      "priority": "HIGH"
+    },
+    "border": {
+      "operator": "Tom Homan",
+      "exposure": 170100000000,
+      "priority": "HIGHEST"
+    },
+    "gulf": {
+      "operator": "Jared Kushner",
+      "exposure": 5400000000,
+      "priority": "Medium"
+    },
+    "golf": {
+      "operator": "Eric Trump",
+      "exposure": 354000000,
+      "priority": "Medium"
+    },
+    "license": {
+      "operator": "Eric Trump",
+      "exposure": 36000000,
+      "priority": "LOW"
+    }
+  },
+  "cross_domain": {
+    "central_node": "Saudi PIF",
+    "domains": ["gulf", "golf", "license", "tariff"],
+    "total_exposure": 6580000000
+  }
+}
